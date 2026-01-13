@@ -54,43 +54,18 @@ Railway automáticamente inyecta `DATABASE_URL` desde el servicio PostgreSQL.
 
 **No necesitas configurar nada manualmente** - Railway lo hace automáticamente cuando conectas el servicio PostgreSQL.
 
-### Paso 6: Ejecutar Migraciones y Seed (IMPORTANTE)
+### Paso 6: Migraciones y Seed (Automático) ✅
 
-**⚠️ IMPORTANTE:** Después del primer despliegue, debes ejecutar las migraciones para crear las tablas en la base de datos.
+**🎉 ¡Buenas noticias!** Las migraciones y el seed se ejecutan **automáticamente** cuando la aplicación inicia.
 
-**Opción A: Usando Railway CLI (Recomendado)**
+El script `start` en `package.json` ejecuta:
+1. `prisma db push` - Crea las tablas si no existen
+2. `prisma seed` - Agrega datos iniciales si la base está vacía
+3. `next start` - Inicia la aplicación
 
-```bash
-# Instalar Railway CLI
-npm i -g @railway/cli
+**No necesitas hacer nada manualmente** - todo se configura automáticamente en el primer despliegue.
 
-# Login
-railway login
-
-# Conectar al proyecto
-railway link
-
-# 1. Ejecutar migraciones (crear tablas)
-railway run npm run db:push
-
-# 2. Ejecutar seed (poblar con datos iniciales)
-railway run npm run db:seed
-```
-
-**Opción B: Desde el Dashboard de Railway**
-
-1. Ve a tu servicio web en Railway
-2. Click en **"Deployments"**
-3. Click en el último deployment
-4. Abre la terminal
-5. Ejecuta en orden:
-   ```bash
-   # 1. Crear las tablas
-   npm run db:push
-   
-   # 2. Poblar con datos iniciales
-   npm run db:seed
-   ```
+**Nota:** Si quieres ejecutar los comandos manualmente (por ejemplo, para resetear la base de datos), puedes usar Railway CLI o la terminal del dashboard (ver sección de Troubleshooting).
 
 ### Paso 7: Verificar el Despliegue
 
@@ -151,8 +126,7 @@ Si necesitas agregar más variables de entorno:
 - [ ] Servicio PostgreSQL agregado
 - [ ] Servicio web desplegado
 - [ ] Variables de entorno configuradas (automático)
-- [ ] **Migraciones ejecutadas** (`npm run db:push`) ⚠️ IMPORTANTE
-- [ ] **Seed ejecutado** (`npm run db:seed`) - Opcional pero recomendado
+- [ ] **Migraciones y seed ejecutados automáticamente** ✅ (Se ejecutan al iniciar la app)
 - [ ] URL de producción verificada
 - [ ] Webhook endpoint probado
 

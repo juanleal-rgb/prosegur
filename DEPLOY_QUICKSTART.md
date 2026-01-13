@@ -26,27 +26,16 @@ git push -u origin main
 3. Click **"+ New"** → **"Database"** → **"Add PostgreSQL"**
 4. ¡Listo! Railway desplegará automáticamente
 
-### 4️⃣ Ejecutar Migraciones y Seed (IMPORTANTE)
+### 4️⃣ ¡Listo! Migraciones Automáticas ✅
 
-**⚠️ IMPORTANTE:** Después del despliegue, debes ejecutar las migraciones:
+**🎉 Las migraciones y el seed se ejecutan automáticamente** cuando la aplicación inicia por primera vez.
 
-```bash
-# Opción 1: Railway CLI
-npm i -g @railway/cli
-railway login
-railway link
+No necesitas hacer nada - Railway ejecutará:
+- ✅ Creación de tablas (`prisma db push`)
+- ✅ Datos iniciales (`prisma seed`)
+- ✅ Inicio de la aplicación
 
-# 1. Crear las tablas (IMPORTANTE)
-railway run npm run db:push
-
-# 2. Poblar con datos iniciales (Opcional)
-railway run npm run db:seed
-
-# Opción 2: Desde Railway Dashboard
-# Ve a tu servicio → Deployments → Terminal
-# Ejecuta: npm run db:push
-# Luego: npm run db:seed
-```
+Todo se configura automáticamente en el primer despliegue.
 
 ## ✅ Verificación
 
