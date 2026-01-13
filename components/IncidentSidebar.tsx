@@ -92,8 +92,10 @@ export default function IncidentSidebar({
 
   const latestIncident = incidents[0]
 
+  if (!location) return null
+
   return (
-    <Dialog open={isOpen && !!location} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{location.name}</DialogTitle>
