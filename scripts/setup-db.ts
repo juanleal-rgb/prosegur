@@ -10,7 +10,7 @@ async function setupDatabase() {
     // Run migrations (idempotent - safe to run multiple times)
     console.log('📦 Running database migrations...')
     try {
-      execSync('npx prisma db push --accept-data-loss --skip-generate', { 
+      execSync('npx prisma db push --skip-generate', { 
         stdio: 'inherit',
         env: { ...process.env }
       })
@@ -24,20 +24,22 @@ async function setupDatabase() {
       }
     }
 
-    // Check if we need to seed
+    // Check if we need to seed (ONLY if database is empty)
     console.log('🌱 Checking if database needs seeding...')
     try {
       const locationCount = await prisma.location.count()
+      const incidentCount = await prisma.incident.count()
       
-      if (locationCount === 0) {
-        console.log('🌱 Seeding database with initial data...')
+      // Only seed if BOTH locations and incidents are empty
+      if (locationCount === 0 && incidentCount === 0) {
+        console.log('🌱 Database is empty, seeding with initial data...')
         execSync('npx tsx prisma/seed.ts', { 
           stdio: 'inherit',
           env: { ...process.env }
         })
         console.log('✅ Seed completed')
       } else {
-        console.log(`✅ Database already seeded (${locationCount} locations found)`)
+        console.log(`✅ Database already has data (${locationCount} locations, ${incidentCount} incidents) - skipping seed`)
       }
     } catch (error: any) {
       // If we can't check or seed, that's okay - maybe tables don't exist yet

@@ -42,6 +42,7 @@ export default function IncidentSidebar({
   const [incidents, setIncidents] = useState<Incident[]>([])
 
   useEffect(() => {
+    console.log('IncidentSidebar - isOpen:', isOpen, 'location:', location)
     if (location) {
       // Sort incidents by most recent first
       const sorted = [...location.incidents].sort(
@@ -49,8 +50,9 @@ export default function IncidentSidebar({
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )
       setIncidents(sorted)
+      console.log('Incidents sorted:', sorted.length)
     }
-  }, [location])
+  }, [location, isOpen])
 
   const handleDownloadPDF = async (incident: Incident) => {
     try {
@@ -88,12 +90,10 @@ export default function IncidentSidebar({
     }
   }
 
-  if (!location) return null
-
   const latestIncident = incidents[0]
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen && !!location} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{location.name}</DialogTitle>

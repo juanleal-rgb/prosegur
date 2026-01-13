@@ -59,8 +59,10 @@ export default function MapDashboard() {
   }
 
   const handleMarkerClick = (location: Location) => {
+    console.log('Marker clicked:', location)
     setSelectedLocation(location)
     setIsSidebarOpen(true)
+    console.log('Sidebar should open:', true)
   }
 
   if (loading) {
@@ -91,7 +93,9 @@ export default function MapDashboard() {
             key={location.id}
             position={[location.lat, location.lng]}
             eventHandlers={{
-              click: () => handleMarkerClick(location),
+              click: () => {
+                handleMarkerClick(location)
+              },
             }}
           >
             <Popup>
@@ -102,6 +106,10 @@ export default function MapDashboard() {
                 <br />
                 <span className="text-xs text-gray-500">
                   {location.incidents.length} incident(s)
+                </span>
+                <br />
+                <span className="text-xs text-blue-600 mt-1 block">
+                  Click en el marcador para ver detalles
                 </span>
               </div>
             </Popup>

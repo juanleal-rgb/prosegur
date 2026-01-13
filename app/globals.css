@@ -57,3 +57,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure Dialog appears above Leaflet map */
+.leaflet-container {
+  z-index: 1;
+}
+
+[data-radix-portal] {
+  z-index: 9999 !important;
+}
