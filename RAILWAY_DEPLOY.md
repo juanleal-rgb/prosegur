@@ -54,11 +54,11 @@ Railway automáticamente inyecta `DATABASE_URL` desde el servicio PostgreSQL.
 
 **No necesitas configurar nada manualmente** - Railway lo hace automáticamente cuando conectas el servicio PostgreSQL.
 
-### Paso 6: Ejecutar Migraciones y Seed (Opcional)
+### Paso 6: Ejecutar Migraciones y Seed (IMPORTANTE)
 
-Después del primer despliegue, puedes ejecutar el seed para poblar la base de datos:
+**⚠️ IMPORTANTE:** Después del primer despliegue, debes ejecutar las migraciones para crear las tablas en la base de datos.
 
-**Opción A: Usando Railway CLI**
+**Opción A: Usando Railway CLI (Recomendado)**
 
 ```bash
 # Instalar Railway CLI
@@ -70,7 +70,10 @@ railway login
 # Conectar al proyecto
 railway link
 
-# Ejecutar seed
+# 1. Ejecutar migraciones (crear tablas)
+railway run npm run db:push
+
+# 2. Ejecutar seed (poblar con datos iniciales)
 railway run npm run db:seed
 ```
 
@@ -80,7 +83,14 @@ railway run npm run db:seed
 2. Click en **"Deployments"**
 3. Click en el último deployment
 4. Abre la terminal
-5. Ejecuta: `npm run db:seed`
+5. Ejecuta en orden:
+   ```bash
+   # 1. Crear las tablas
+   npm run db:push
+   
+   # 2. Poblar con datos iniciales
+   npm run db:seed
+   ```
 
 ### Paso 7: Verificar el Despliegue
 
@@ -122,6 +132,7 @@ Si necesitas agregar más variables de entorno:
 - Revisa los logs en Railway
 - Asegúrate de que todas las dependencias estén en `package.json`
 - Verifica que el script `build` funcione localmente
+- **Error "Can't reach database server"**: Esto es normal durante el build. Las migraciones se ejecutan DESPUÉS del despliegue, no durante el build
 
 ### Error: "Prisma Client not generated"
 
@@ -140,8 +151,8 @@ Si necesitas agregar más variables de entorno:
 - [ ] Servicio PostgreSQL agregado
 - [ ] Servicio web desplegado
 - [ ] Variables de entorno configuradas (automático)
-- [ ] Migraciones ejecutadas (automático en build)
-- [ ] Seed ejecutado (opcional)
+- [ ] **Migraciones ejecutadas** (`npm run db:push`) ⚠️ IMPORTANTE
+- [ ] **Seed ejecutado** (`npm run db:seed`) - Opcional pero recomendado
 - [ ] URL de producción verificada
 - [ ] Webhook endpoint probado
 
