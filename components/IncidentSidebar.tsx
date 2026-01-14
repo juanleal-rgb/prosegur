@@ -53,46 +53,75 @@ export default function IncidentSidebar({
   }, [location, isOpen])
 
   const handleDownloadPDF = async (incident: Incident) => {
+    console.log('[PDF Download] ========== PDF DOWNLOAD INITIATED ==========')
+    console.log('[PDF Download] Step 1: Starting PDF generation for incident:', incident.id)
+    console.log('[PDF Download] Incident data:', {
+      id: incident.id,
+      createdAt: incident.createdAt,
+      severity: incident.severity,
+      summaryLength: incident.summary?.length || 0,
+      htmlReportLength: incident.htmlReport?.length || 0
+    })
+    
     try {
       // Dynamically import html2pdf.js (client-side only)
+      console.log('[PDF Download] Step 2: Importing html2pdf.js library')
       const html2pdf = (await import('html2pdf.js')).default
+      console.log('[PDF Download] html2pdf.js imported successfully')
       
       // Extract content from HTML - handle cases where HTML comes with <html> and <body> tags
       let htmlContent = incident.htmlReport
+      console.log('[PDF Download] Step 3: Extracted htmlReport from incident')
+      console.log('[PDF Download] Original HTML content length:', htmlContent.length)
+      console.log('[PDF Download] Original HTML preview (first 200 chars):', htmlContent.substring(0, 200))
       
       // Remove markdown code blocks if present
+      console.log('[PDF Download] Step 4: Cleaning HTML (removing markdown blocks if present)')
+      const beforeClean = htmlContent.length
       htmlContent = htmlContent.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim()
+      console.log('[PDF Download] After cleaning - length:', htmlContent.length, '(was:', beforeClean, ')')
       
       // Parse the HTML to extract styles and content
       // Create a temporary document to parse the HTML properly
+      console.log('[PDF Download] Step 5: Parsing HTML with DOMParser')
       let styles = ''
       let contentToUse = ''
       
       try {
         const parser = new DOMParser()
         const doc = parser.parseFromString(htmlContent, 'text/html')
+        console.log('[PDF Download] DOMParser created, document parsed')
         
         // Check for parsing errors
         const parserError = doc.querySelector('parsererror')
         if (parserError) {
+          console.log('[PDF Download] ERROR: HTML parsing error detected')
           throw new Error('HTML parsing error')
         }
+        console.log('[PDF Download] HTML parsing successful, no errors')
         
         // Extract styles from <head> or <style> tags
+        console.log('[PDF Download] Step 6: Extracting styles from HTML')
         const headStyles = doc.querySelectorAll('head style, style')
-        headStyles.forEach(style => {
+        console.log('[PDF Download] Found', headStyles.length, 'style tags')
+        headStyles.forEach((style, index) => {
           if (style.textContent) {
             styles += style.textContent + '\n'
+            console.log(`[PDF Download] Style ${index + 1} extracted, length:`, style.textContent.length)
           }
         })
+        console.log('[PDF Download] Total styles length:', styles.length)
         
         // Try to extract body content, or use the whole document body
+        console.log('[PDF Download] Step 7: Extracting body content')
         const bodyElement = doc.querySelector('body')
         
         if (bodyElement && bodyElement.innerHTML.trim()) {
           contentToUse = bodyElement.innerHTML
+          console.log('[PDF Download] Body content extracted, length:', contentToUse.length)
         } else {
           // If no body tag, use the entire HTML content but remove html/head tags
+          console.log('[PDF Download] No body element found, using fallback extraction')
           const htmlElement = doc.documentElement
           if (htmlElement) {
             // Remove head and style tags from content
@@ -102,13 +131,15 @@ export default function IncidentSidebar({
             if (headToRemove) headToRemove.remove()
             stylesToRemove.forEach(s => s.remove())
             contentToUse = clone.innerHTML
+            console.log('[PDF Download] Content extracted from htmlElement, length:', contentToUse.length)
           } else {
             contentToUse = htmlContent
+            console.log('[PDF Download] Using original htmlContent as fallback, length:', contentToUse.length)
           }
         }
       } catch (parseError) {
         // Fallback: use simple parsing
-        console.warn('DOMParser failed, using fallback:', parseError)
+        console.warn('[PDF Download] DOMParser failed, using fallback:', parseError)
         const tempDiv = document.createElement('div')
         tempDiv.innerHTML = htmlContent
         
@@ -135,10 +166,14 @@ export default function IncidentSidebar({
       
       // Ensure we have content
       if (!contentToUse || contentToUse.trim().length === 0) {
+        console.log('[PDF Download] WARNING: contentToUse is empty, using original htmlContent')
         contentToUse = htmlContent
       }
+      console.log('[PDF Download] Step 8: Final content to use, length:', contentToUse.length)
+      console.log('[PDF Download] Final styles length:', styles.length)
       
       // Create wrapper element for PDF generation
+      console.log('[PDF Download] Step 9: Creating wrapper element for PDF')
       const element = document.createElement('div')
       element.style.fontFamily = 'Arial, sans-serif'
       element.style.padding = '20px'
@@ -149,16 +184,23 @@ export default function IncidentSidebar({
       element.style.minHeight = '297mm' // A4 height
       
       // Build the complete HTML structure
+      console.log('[PDF Download] Step 10: Building final HTML structure')
       let finalHTML = ''
       if (styles) {
         finalHTML += `<style>${styles}</style>`
+        console.log('[PDF Download] Added styles to finalHTML')
       }
       finalHTML += contentToUse
+      console.log('[PDF Download] Final HTML length:', finalHTML.length)
+      console.log('[PDF Download] Final HTML preview (first 300 chars):', finalHTML.substring(0, 300))
       
       element.innerHTML = finalHTML
+      console.log('[PDF Download] Element innerHTML set, element children count:', element.children.length)
       
       // Ensure all elements have proper visibility and colors
+      console.log('[PDF Download] Step 11: Applying visibility and color styles to all elements')
       const allElements = element.querySelectorAll('*')
+      console.log('[PDF Download] Found', allElements.length, 'elements to style')
       allElements.forEach((el) => {
         const htmlEl = el as HTMLElement
         htmlEl.style.visibility = 'visible'
@@ -170,25 +212,32 @@ export default function IncidentSidebar({
           htmlEl.style.color = '#000000'
         }
       })
+      console.log('[PDF Download] All elements styled')
       
       // Ensure tables and other elements are visible
+      console.log('[PDF Download] Step 12: Styling tables and cells')
       const tables = element.querySelectorAll('table')
-      tables.forEach(table => {
+      console.log('[PDF Download] Found', tables.length, 'tables')
+      tables.forEach((table, index) => {
         const htmlTable = table as HTMLElement
         htmlTable.style.borderCollapse = 'collapse'
         htmlTable.style.width = '100%'
         htmlTable.style.marginTop = '20px'
+        console.log(`[PDF Download] Table ${index + 1} styled`)
       })
       
       const cells = element.querySelectorAll('th, td')
+      console.log('[PDF Download] Found', cells.length, 'cells')
       cells.forEach(cell => {
         const htmlCell = cell as HTMLElement
         htmlCell.style.border = '1px solid #bdc3c7'
         htmlCell.style.padding = '12px'
         htmlCell.style.textAlign = 'left'
       })
+      console.log('[PDF Download] All cells styled')
       
       // Add to DOM temporarily (off-screen) to ensure proper rendering
+      console.log('[PDF Download] Step 13: Adding element to DOM (off-screen)')
       element.style.position = 'absolute'
       element.style.left = '-9999px'
       element.style.top = '0'
@@ -196,28 +245,49 @@ export default function IncidentSidebar({
       element.style.visibility = 'visible'
       element.style.display = 'block'
       document.body.appendChild(element)
+      console.log('[PDF Download] Element added to DOM')
 
       // Force a reflow to ensure rendering
+      console.log('[PDF Download] Step 14: Forcing reflow')
       void element.offsetHeight
+      console.log('[PDF Download] Reflow complete, element dimensions:', {
+        offsetHeight: element.offsetHeight,
+        offsetWidth: element.offsetWidth,
+        scrollHeight: element.scrollHeight,
+        scrollWidth: element.scrollWidth
+      })
 
       // Wait for rendering and styles to apply, and for images to load
+      console.log('[PDF Download] Step 15: Waiting 800ms for rendering and styles to apply')
       await new Promise(resolve => setTimeout(resolve, 800))
+      console.log('[PDF Download] Wait complete, final dimensions:', {
+        scrollHeight: element.scrollHeight,
+        scrollWidth: element.scrollWidth
+      })
       
       // Verify element has content
       if (!element.innerHTML || element.innerHTML.trim().length === 0) {
+        console.error('[PDF Download] ERROR: Element is empty after rendering!')
         throw new Error('El elemento está vacío después del renderizado')
       }
       
       // Log for debugging
-      console.log('Generando PDF con contenido:', {
+      console.log('[PDF Download] Step 16: Element ready for PDF generation')
+      console.log('[PDF Download] Element content check:', {
         hasContent: element.innerHTML.length > 0,
+        innerHTMLLength: element.innerHTML.length,
         elementHeight: element.scrollHeight,
-        elementWidth: element.scrollWidth
+        elementWidth: element.scrollWidth,
+        childrenCount: element.children.length
       })
 
+      const filename = `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`
+      console.log('[PDF Download] Step 17: Configuring PDF options')
+      console.log('[PDF Download] PDF filename:', filename)
+      
       const opt = {
         margin: [10, 10, 10, 10],
-        filename: `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2,
@@ -229,26 +299,42 @@ export default function IncidentSidebar({
           windowWidth: element.scrollWidth || 800,
           windowHeight: element.scrollHeight || 1200,
           onclone: (clonedDoc: any) => {
+            console.log('[PDF Download] html2canvas onclone callback triggered')
             // Ensure cloned document has proper styles
             const clonedElement = clonedDoc.body?.querySelector('div')
             if (clonedElement) {
               clonedElement.style.visibility = 'visible'
               clonedElement.style.opacity = '1'
               clonedElement.style.display = 'block'
+              console.log('[PDF Download] Cloned element styled')
+            } else {
+              console.warn('[PDF Download] WARNING: Cloned element not found in onclone')
             }
           }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       }
+      console.log('[PDF Download] PDF options configured:', {
+        filename,
+        windowWidth: opt.html2canvas.windowWidth,
+        windowHeight: opt.html2canvas.windowHeight
+      })
 
+      console.log('[PDF Download] Step 18: Starting PDF generation with html2pdf')
       await html2pdf().set(opt).from(element).save()
+      console.log('[PDF Download] Step 19: PDF generation complete!')
+      console.log('[PDF Download] ========== PDF DOWNLOAD SUCCESSFUL ==========')
       
       // Clean up
+      console.log('[PDF Download] Step 20: Cleaning up DOM element')
       if (document.body.contains(element)) {
         document.body.removeChild(element)
+        console.log('[PDF Download] Element removed from DOM')
       }
     } catch (error) {
-      console.error('Error generating PDF:', error)
+      console.error('[PDF Download] ========== PDF GENERATION ERROR ==========')
+      console.error('[PDF Download] Error details:', error)
+      console.error('[PDF Download] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       alert('Error al generar PDF. Por favor, inténtalo de nuevo.')
     }
   }
