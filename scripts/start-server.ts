@@ -1,4 +1,4 @@
-import { spawn } from 'child_process'
+import { spawn, type ChildProcess } from 'child_process'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -47,10 +47,10 @@ async function quickSetup() {
   }
 }
 
-let nextProcess: ReturnType<typeof spawn> | null = null
+let nextProcess: ChildProcess | null = null
 
 // Handle shutdown signals gracefully
-const shutdown = (signal: string) => {
+const shutdown = (signal: NodeJS.Signals) => {
   console.log(`\n📴 Received ${signal}, shutting down gracefully...`)
   if (nextProcess) {
     nextProcess.kill(signal)
