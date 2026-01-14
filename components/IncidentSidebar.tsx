@@ -58,49 +58,66 @@ export default function IncidentSidebar({
       // Dynamically import html2pdf.js (client-side only)
       const html2pdf = (await import('html2pdf.js')).default
       
-      // Create a wrapper with proper styling for PDF generation
+      // Create a clean wrapper with explicit styles
       const wrapper = document.createElement('div')
-      wrapper.style.width = '210mm' // A4 width
-      wrapper.style.minHeight = '297mm' // A4 height
-      wrapper.style.padding = '20mm'
-      wrapper.style.fontFamily = 'Arial, sans-serif'
-      wrapper.style.backgroundColor = '#ffffff'
-      wrapper.style.color = '#000000'
-      wrapper.style.boxSizing = 'border-box'
+      wrapper.id = 'pdf-wrapper-temp'
       
-      // Create inner container for the HTML content
-      const contentDiv = document.createElement('div')
-      contentDiv.innerHTML = incident.htmlReport
+      // Set explicit styles for PDF generation
+      Object.assign(wrapper.style, {
+        width: '794px', // A4 width in pixels at 96 DPI
+        minHeight: '1123px', // A4 height in pixels
+        padding: '40px',
+        fontFamily: 'Arial, Helvetica, sans-serif',
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        boxSizing: 'border-box',
+        position: 'absolute',
+        left: '-9999px',
+        top: '0',
+        zIndex: '-1',
+        visibility: 'visible',
+        opacity: '1',
+      })
       
-      // Ensure all inline styles are preserved and visible
-      const allElements = contentDiv.querySelectorAll('*')
+      // Set the HTML content
+      wrapper.innerHTML = incident.htmlReport
+      
+      // Force all elements to be visible and have proper colors
+      const allElements = wrapper.querySelectorAll('*')
       allElements.forEach((el: Element) => {
         const htmlEl = el as HTMLElement
-        // Ensure text is black and visible
-        if (!htmlEl.style.color || htmlEl.style.color === 'transparent') {
-          htmlEl.style.color = '#000000'
-        }
-        // Ensure background is white or visible
-        if (htmlEl.style.backgroundColor === 'transparent' || !htmlEl.style.backgroundColor) {
-          if (htmlEl.tagName === 'BODY' || htmlEl.tagName === 'HTML' || htmlEl.tagName === 'DIV') {
-            htmlEl.style.backgroundColor = '#ffffff'
+        
+        // Force text color for text elements
+        const textElements = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'TD', 'TH', 'LI', 'DIV', 'STRONG', 'B', 'EM', 'I']
+        if (textElements.includes(htmlEl.tagName)) {
+          const computedColor = window.getComputedStyle(htmlEl).color
+          if (!computedColor || computedColor === 'transparent' || computedColor === 'rgba(0, 0, 0, 0)') {
+            htmlEl.style.color = '#000000'
           }
         }
+        
         // Ensure visibility
         htmlEl.style.visibility = 'visible'
         htmlEl.style.opacity = '1'
+        htmlEl.style.display = htmlEl.style.display || ''
+        
+        // Fix table borders
+        if (htmlEl.tagName === 'TD' || htmlEl.tagName === 'TH') {
+          const border = htmlEl.style.border || window.getComputedStyle(htmlEl).border
+          if (!border || border === 'none' || border === '0px') {
+            htmlEl.style.border = '1px solid #000000'
+          }
+        }
       })
       
-      wrapper.appendChild(contentDiv)
-
-      // Temporarily add to DOM (hidden) to ensure proper rendering
-      wrapper.style.position = 'absolute'
-      wrapper.style.left = '-9999px'
-      wrapper.style.top = '0'
-      wrapper.style.zIndex = '-1'
+      // Add to DOM
       document.body.appendChild(wrapper)
-
-      // Wait for fonts and images to load
+      
+      // Force layout recalculation
+      void wrapper.offsetHeight
+      void wrapper.scrollHeight
+      
+      // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 300))
 
       const opt = {
@@ -117,7 +134,7 @@ export default function IncidentSidebar({
           backgroundColor: '#ffffff',
           letterRendering: true,
           allowTaint: false,
-          removeContainer: false,
+          removeContainer: true,
         },
         jsPDF: { 
           unit: 'mm', 
