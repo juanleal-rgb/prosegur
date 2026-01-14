@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Download, AlertCircle, Clock, MapPin, Shield } from 'lucide-react'
+import { Download, AlertCircle, Clock, MapPin, Shield, FileText, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Incident {
@@ -40,6 +40,8 @@ export default function IncidentSidebar({
   onClose,
 }: IncidentSidebarProps) {
   const [incidents, setIncidents] = useState<Incident[]>([])
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
+  const [showFullReport, setShowFullReport] = useState(false)
 
   useEffect(() => {
     if (location) {
@@ -51,6 +53,16 @@ export default function IncidentSidebar({
       setIncidents(sorted)
     }
   }, [location, isOpen])
+
+  const handleIncidentClick = (incident: Incident) => {
+    setSelectedIncident(incident)
+    setShowFullReport(false)
+  }
+
+  const handleCloseReport = () => {
+    setSelectedIncident(null)
+    setShowFullReport(false)
+  }
 
   const handleDownloadPDF = async (incident: Incident) => {
     console.log('[PDF Download] ========== PDF DOWNLOAD INITIATED ==========')
@@ -172,9 +184,9 @@ export default function IncidentSidebar({
       } catch (parseError) {
         // Fallback: use simple parsing
         console.warn('[PDF Download] DOMParser failed, using fallback:', parseError)
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = htmlContent
-        
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = htmlContent
+      
         // Extract styles
         const styleElements = tempDiv.querySelectorAll('style')
         styleElements.forEach(style => {
@@ -185,9 +197,9 @@ export default function IncidentSidebar({
         console.log('[PDF Download] Fallback: extracted', styles.length, 'chars of styles')
         
         // Extract body or use all content
-        const bodyElement = tempDiv.querySelector('body')
-        if (bodyElement) {
-          contentToUse = bodyElement.innerHTML
+      const bodyElement = tempDiv.querySelector('body')
+      if (bodyElement) {
+        contentToUse = bodyElement.innerHTML
           console.log('[PDF Download] Fallback: body content length:', contentToUse.length)
         } else {
           // Remove style tags from content
@@ -462,7 +474,7 @@ export default function IncidentSidebar({
       const filename = `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`
       console.log('[PDF Download] Step 17: Configuring PDF options')
       console.log('[PDF Download] PDF filename:', filename)
-      
+
       const opt = {
         margin: [10, 10, 10, 10],
         filename: filename,
@@ -747,15 +759,25 @@ export default function IncidentSidebar({
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadPDF(incident)}
-                        className="w-full border-[var(--prosegur-border)] hover:bg-[var(--prosegur-surface)]"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Descargar Reporte PDF
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleIncidentClick(incident)}
+                          className="flex-1 border-[var(--prosegur-border)] hover:bg-[var(--prosegur-surface)]"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Ver Reporte
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadPDF(incident)}
+                          className="border-[var(--prosegur-border)] hover:bg-[var(--prosegur-surface)]"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   )
                 })}
@@ -764,6 +786,153 @@ export default function IncidentSidebar({
           </div>
         </div>
       </DialogContent>
+
+      {/* Modal de Reporte Individual */}
+      {selectedIncident && (
+        <Dialog open={!!selectedIncident} onOpenChange={handleCloseReport}>
+          <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden flex flex-col p-0 bg-[var(--prosegur-card)]">
+            {/* Header con gradiente */}
+            <div className="flex-shrink-0 p-6 border-b border-[var(--prosegur-border)] bg-gradient-to-br from-[var(--prosegur-primary)]/10 via-[var(--prosegur-accent)]/5 to-transparent dark:from-[var(--prosegur-primary)]/20 dark:via-[var(--prosegur-accent)]/10">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <DialogTitle className="text-2xl font-bold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
+                    <div className="rounded-lg bg-[var(--prosegur-primary)]/20 dark:bg-[var(--prosegur-primary)]/30 p-2">
+                      <FileText className="h-5 w-5 text-[var(--prosegur-primary)]" />
+                    </div>
+                    Reporte de Incidencia
+                  </DialogTitle>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-sm font-semibold border flex items-center gap-2 shadow-sm",
+                        getSeverityConfig(selectedIncident.severity).bg,
+                        getSeverityConfig(selectedIncident.severity).text,
+                        getSeverityConfig(selectedIncident.severity).border
+                      )}
+                    >
+                      <span className={cn("w-2 h-2 rounded-full", getSeverityConfig(selectedIncident.severity).dot)} />
+                      {getSeverityConfig(selectedIncident.severity).label}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400 bg-white/50 dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        {new Date(selectedIncident.createdAt).toLocaleString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400 bg-white/50 dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg">
+                      <MapPin className="h-4 w-4" />
+                      <span>{location?.name}</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseReport}
+                  className="rounded-full h-9 w-9 p-0 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Summary Section */}
+            <div className="flex-shrink-0 p-6 border-b border-[var(--prosegur-border)] bg-[var(--prosegur-card)]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="rounded-lg bg-[var(--prosegur-primary)]/10 dark:bg-[var(--prosegur-primary)]/20 p-2">
+                  <AlertCircle className="h-5 w-5 text-[var(--prosegur-primary)]" />
+                </div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                  Resumen
+                </h3>
+              </div>
+              <div className={cn(
+                "rounded-lg p-4 border-l-4",
+                getSeverityConfig(selectedIncident.severity).bg,
+                getSeverityConfig(selectedIncident.severity).border
+              )}>
+                <p className={cn("text-sm leading-relaxed", getSeverityConfig(selectedIncident.severity).text)}>
+                  {selectedIncident.summary}
+                </p>
+              </div>
+            </div>
+
+            {/* Report Section */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900/50 dark:to-zinc-800/30">
+              <div className="flex items-center justify-between mb-4 sticky top-0 bg-inherit pb-2 z-10">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-[var(--prosegur-primary)]/10 dark:bg-[var(--prosegur-primary)]/20 p-2">
+                    <FileText className="h-5 w-5 text-[var(--prosegur-primary)]" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                    Reporte Completo
+                  </h3>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowFullReport(!showFullReport)}
+                    className="border-[var(--prosegur-border)] hover:bg-[var(--prosegur-surface)]"
+                  >
+                    {showFullReport ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-2" />
+                        Ocultar
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-2" />
+                        Expandir
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadPDF(selectedIncident)}
+                    className="border-[var(--prosegur-border)] hover:bg-[var(--prosegur-surface)]"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* HTML Report Display */}
+              <div
+                className={cn(
+                  "transition-all duration-300 overflow-hidden rounded-lg",
+                  showFullReport ? "max-h-none" : "max-h-96"
+                )}
+              >
+                <div
+                  className="bg-white dark:bg-zinc-800 rounded-xl p-8 shadow-lg border border-[var(--prosegur-border)] 
+                    [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-zinc-900 [&_h1]:dark:text-white [&_h1]:mb-4
+                    [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-zinc-800 [&_h2]:dark:text-zinc-200 [&_h2]:mt-6 [&_h2]:mb-3
+                    [&_p]:text-zinc-700 [&_p]:dark:text-zinc-300 [&_p]:leading-relaxed [&_p]:mb-3
+                    [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
+                    [&_th]:bg-[var(--prosegur-primary)] [&_th]:text-white [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold
+                    [&_td]:border [&_td]:border-zinc-300 [&_td]:dark:border-zinc-600 [&_td]:px-4 [&_td]:py-2 [&_td]:text-zinc-700 [&_td]:dark:text-zinc-300
+                    [&_.header]:border-b-2 [&_.header]:border-[var(--prosegur-primary)] [&_.header]:pb-4 [&_.header]:mb-6
+                    [&_.summary]:bg-zinc-100 [&_.summary]:dark:bg-zinc-700/50 [&_.summary]:p-4 [&_.summary]:rounded-lg [&_.summary]:mb-6
+                    [&_.footer]:mt-8 [&_.footer]:pt-4 [&_.footer]:border-t [&_.footer]:border-zinc-300 [&_.footer]:dark:border-zinc-600 [&_.footer]:text-center [&_.footer]:text-sm [&_.footer]:text-zinc-500 [&_.footer]:dark:text-zinc-400"
+                  dangerouslySetInnerHTML={{ __html: selectedIncident.htmlReport }}
+                  style={{
+                    fontFamily: 'Arial, sans-serif',
+                  }}
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   )
 }
