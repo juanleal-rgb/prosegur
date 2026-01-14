@@ -870,9 +870,7 @@ export default function IncidentSidebar({
                   <div className="rounded-lg bg-[var(--prosegur-primary)]/10 dark:bg-[var(--prosegur-primary)]/20 p-2">
                     <FileText className="h-5 w-5 text-[var(--prosegur-primary)]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                    Reporte Completo
-                  </h3>
+                  
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -918,8 +916,11 @@ export default function IncidentSidebar({
                     [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-zinc-800 [&_h2]:dark:text-zinc-200 [&_h2]:mt-6 [&_h2]:mb-3
                     [&_p]:text-zinc-700 [&_p]:dark:text-zinc-300 [&_p]:leading-relaxed [&_p]:mb-3
                     [&_table]:w-full [&_table]:border-collapse [&_table]:my-4
-                    [&_th]:bg-[var(--prosegur-primary)] [&_th]:text-white [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold
-                    [&_td]:border [&_td]:border-zinc-300 [&_td]:dark:border-zinc-600 [&_td]:px-4 [&_td]:py-2 [&_td]:text-zinc-700 [&_td]:dark:text-zinc-300
+                    [&_th]:bg-zinc-100 [&_th]:dark:bg-zinc-700 [&_th]:text-zinc-900 [&_th]:dark:text-white [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:border [&_th]:border-zinc-300 [&_th]:dark:border-zinc-600
+                    [&_td]:border [&_td]:border-zinc-300 [&_td]:dark:border-zinc-600 [&_td]:px-4 [&_td]:py-2 [&_td]:text-zinc-700 [&_td]:dark:text-zinc-300 [&_td]:bg-white [&_td]:dark:bg-zinc-800
+                    [&_td.severity-high]:bg-white [&_td.severity-high]:dark:bg-zinc-800 [&_td.severity-high]:text-zinc-700 [&_td.severity-high]:dark:text-zinc-300
+                    [&_td.severity-medium]:bg-white [&_td.severity-medium]:dark:bg-zinc-800 [&_td.severity-medium]:text-zinc-700 [&_td.severity-medium]:dark:text-zinc-300
+                    [&_td.severity-low]:bg-white [&_td.severity-low]:dark:bg-zinc-800 [&_td.severity-low]:text-zinc-700 [&_td.severity-low]:dark:text-zinc-300
                     [&_.header]:border-b-2 [&_.header]:border-[var(--prosegur-primary)] [&_.header]:pb-4 [&_.header]:mb-6
                     [&_.summary]:bg-zinc-100 [&_.summary]:dark:bg-zinc-700/50 [&_.summary]:p-4 [&_.summary]:rounded-lg [&_.summary]:mb-6
                     [&_.footer]:mt-8 [&_.footer]:pt-4 [&_.footer]:border-t [&_.footer]:border-zinc-300 [&_.footer]:dark:border-zinc-600 [&_.footer]:text-center [&_.footer]:text-sm [&_.footer]:text-zinc-500 [&_.footer]:dark:text-zinc-400"
