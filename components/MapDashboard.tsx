@@ -5,7 +5,7 @@ import Map, { Marker, MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import IncidentSidebar from './IncidentSidebar'
 import { cn } from '@/lib/utils'
-import { MapPin, AlertTriangle, Activity, Shield, Satellite, Map as MapIcon } from 'lucide-react'
+import { MapPin, AlertTriangle, Activity, Shield, Satellite, Map as MapIcon, Building2, Car } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 
 interface Incident {
@@ -27,6 +27,20 @@ interface Location {
 
 type MapStyle = 'satellite' | 'streets' | 'dark' | 'light'
 
+interface Vehicle {
+  id: string
+  incidentId: string
+  startLat: number
+  startLng: number
+  endLat: number
+  endLng: number
+  currentLat: number
+  currentLng: number
+  progress: number
+  isPolice: boolean
+  route?: number[][]
+}
+
 export default function MapDashboard() {
   const [locations, setLocations] = useState<Location[]>([])
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
@@ -36,12 +50,139 @@ export default function MapDashboard() {
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const mapRef = useRef<MapRef>(null)
   const { theme } = useTheme()
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [dispatchedIncidents, setDispatchedIncidents] = useState<Set<string>>(new Set())
+  
+  // Comisaría coordinates
+  const policeStationCoords: [number, number] = [-3.7060, 40.4230] // [lng, lat]
 
   useEffect(() => {
     fetchLocations()
     const interval = setInterval(fetchLocations, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Check for new critical incidents and dispatch vehicles
+  useEffect(() => {
+    const checkForNewCriticalIncidents = async () => {
+      const criticalIncidents = locations.flatMap(loc =>
+        loc.incidents
+          .filter(inc => {
+            const severity = inc.severity.toLowerCase()
+            return (severity === 'high' || severity === 'critical')
+          })
+          .map(inc => ({
+            incident: inc,
+            location: loc
+          }))
+      )
+
+      for (const { incident, location } of criticalIncidents) {
+        // Check if vehicle already dispatched for this incident
+        if (!dispatchedIncidents.has(incident.id)) {
+          await dispatchVehicle(incident, location)
+          setDispatchedIncidents(prev => new Set(prev).add(incident.id))
+        }
+      }
+    }
+
+    if (locations.length > 0) {
+      checkForNewCriticalIncidents()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locations])
+
+  // Animate vehicles
+  useEffect(() => {
+    const animateVehicles = () => {
+      setVehicles(prevVehicles => {
+        const updated = prevVehicles.map(vehicle => {
+          if (vehicle.progress >= 1) {
+            return vehicle // Vehicle has arrived
+          }
+          
+          const newProgress = Math.min(vehicle.progress + 0.015, 1) // Adjust speed here (0.015 = faster)
+          
+          if (vehicle.route && vehicle.route.length > 0) {
+            // Interpolate along the route
+            const totalDistance = vehicle.route.length
+            const currentIndex = Math.floor(newProgress * (totalDistance - 1))
+            const nextIndex = Math.min(currentIndex + 1, totalDistance - 1)
+            const segmentProgress = (newProgress * (totalDistance - 1)) % 1
+            
+            const currentPoint = vehicle.route[currentIndex]
+            const nextPoint = vehicle.route[nextIndex]
+            
+            const newLat = currentPoint[1] + (nextPoint[1] - currentPoint[1]) * segmentProgress
+            const newLng = currentPoint[0] + (nextPoint[0] - currentPoint[0]) * segmentProgress
+            
+            return {
+              ...vehicle,
+              currentLat: newLat,
+              currentLng: newLng,
+              progress: newProgress
+            }
+          } else {
+            // Simple linear interpolation if no route
+            const newLat = vehicle.startLat + (vehicle.endLat - vehicle.startLat) * newProgress
+            const newLng = vehicle.startLng + (vehicle.endLng - vehicle.startLng) * newProgress
+            
+            return {
+              ...vehicle,
+              currentLat: newLat,
+              currentLng: newLng,
+              progress: newProgress
+            }
+          }
+        }).filter(vehicle => vehicle.progress < 1.1) // Remove vehicles that have arrived (with small buffer)
+        return updated
+      })
+    }
+
+    const interval = setInterval(animateVehicles, 50) // Update every 50ms
+    return () => clearInterval(interval)
+  }, [])
+
+  const dispatchVehicle = async (incident: Incident, location: Location) => {
+    try {
+      // Try to get route from Mapbox Directions API
+      let route: number[][] | undefined = undefined
+      
+      if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+        try {
+          const response = await fetch(
+            `https://api.mapbox.com/directions/v5/mapbox/driving/${policeStationCoords[0]},${policeStationCoords[1]};${location.lng},${location.lat}?geometries=geojson&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+          )
+          const data = await response.json()
+          if (data.routes && data.routes[0]) {
+            route = data.routes[0].geometry.coordinates
+          }
+        } catch (error) {
+          console.error('Error fetching route:', error)
+        }
+      }
+
+      const isPolice = Math.random() > 0.3 // 70% chance of police car
+      
+      const vehicle: Vehicle = {
+        id: `vehicle-${incident.id}-${Date.now()}`,
+        incidentId: incident.id,
+        startLat: policeStationCoords[1],
+        startLng: policeStationCoords[0],
+        endLat: location.lat,
+        endLng: location.lng,
+        currentLat: policeStationCoords[1],
+        currentLng: policeStationCoords[0],
+        progress: 0,
+        isPolice,
+        route
+      }
+
+      setVehicles(prev => [...prev, vehicle])
+    } catch (error) {
+      console.error('Error dispatching vehicle:', error)
+    }
+  }
 
   const fetchLocations = async () => {
     try {
@@ -319,6 +460,49 @@ export default function MapDashboard() {
               attributionControl={false}
               reuseMaps
             >
+              {/* Police Station Marker */}
+              <Marker
+                longitude={policeStationCoords[0]}
+                latitude={policeStationCoords[1]}
+                anchor="bottom"
+              >
+                <div className="relative cursor-pointer">
+                  <div className="relative flex items-center justify-center rounded-lg bg-blue-600 border-2 border-blue-400 text-white shadow-xl p-2">
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 hover:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
+                    <div className="backdrop-blur-lg bg-black/90 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono shadow-xl whitespace-nowrap">
+                      <div className="font-semibold text-white">Comisaría</div>
+                    </div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-zinc-700"></div>
+                  </div>
+                </div>
+              </Marker>
+
+              {/* Vehicle Markers */}
+              {vehicles.map((vehicle) => (
+                <Marker
+                  key={vehicle.id}
+                  longitude={vehicle.currentLng}
+                  latitude={vehicle.currentLat}
+                  anchor="center"
+                >
+                  <div className="relative">
+                    <div className={cn(
+                      "relative flex items-center justify-center rounded-lg border-2 text-white shadow-xl p-1.5 transform transition-transform",
+                      vehicle.isPolice 
+                        ? "bg-blue-600 border-blue-400 rotate-90" 
+                        : "bg-zinc-700 border-zinc-500 rotate-90"
+                    )}>
+                      <Car className="h-5 w-5" />
+                    </div>
+                    {vehicle.progress >= 1 && (
+                      <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white animate-pulse"></div>
+                    )}
+                  </div>
+                </Marker>
+              ))}
+
               {locations.map((location) => {
                 const hasHighSeverity = location.incidents.some(
                   inc => inc.severity.toLowerCase() === 'high'
