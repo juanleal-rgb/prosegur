@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Layout } from "@/components/Layout";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "Incident Tracking Dashboard",
-  description: "Security operations incident tracking system",
+  title: "PROSEGUR - Incident Tracking Dashboard",
+  description: "Sistema de seguimiento de incidentes de seguridad",
 };
+
+// Force dynamic rendering to prevent build-time static generation
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
@@ -15,8 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} antialiased`}
+      >
+        <ThemeProvider>
+          <TooltipProvider>
+            <Layout>{children}</Layout>
+          </TooltipProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
