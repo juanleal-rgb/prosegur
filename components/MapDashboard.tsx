@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
-import Map, { Marker, MapRef } from 'react-map-gl/mapbox'
+import Map, { Marker, MapRef, Source, Layer } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import IncidentSidebar from './IncidentSidebar'
 import { cn } from '@/lib/utils'
@@ -101,11 +101,9 @@ export default function MapDashboard() {
             return vehicle // Vehicle has arrived
           }
           
-          // Calculate speed: 20 km/h = 5.56 m/s
-          // At 50ms per frame: 5.56 m/s * 0.05s = 0.278 m per frame
-          // For a typical route of ~2-3km, we need slower progress increment
-          // Approx 0.003 per frame gives realistic 20 km/h speed
-          const newProgress = Math.min(vehicle.progress + 0.001, 1) // ~20 km/h speed
+          // Calculate speed: ~10-15 km/h for more realistic city driving
+          // At 50ms per frame, slower progress increment for more realistic speed
+          const newProgress = Math.min(vehicle.progress + 0.0005, 1) // ~10-15 km/h speed (muy lento)
           
           if (vehicle.route && vehicle.route.length > 0) {
             // Interpolate along the route
@@ -482,6 +480,47 @@ export default function MapDashboard() {
                   </div>
                 </div>
               </Marker>
+
+              {/* Vehicle Routes */}
+              {vehicles.map((vehicle) => {
+                if (!vehicle.route || vehicle.route.length === 0) return null
+                
+                // Create GeoJSON line for the route
+                const routeGeoJSON = {
+                  type: 'Feature' as const,
+                  geometry: {
+                    type: 'LineString' as const,
+                    coordinates: vehicle.route,
+                  },
+                  properties: {
+                    vehicleId: vehicle.id,
+                    isPolice: vehicle.isPolice,
+                  },
+                }
+
+                return (
+                  <Source
+                    key={`route-${vehicle.id}`}
+                    id={`route-${vehicle.id}`}
+                    type="geojson"
+                    data={routeGeoJSON}
+                  >
+                    <Layer
+                      id={`route-line-${vehicle.id}`}
+                      type="line"
+                      layout={{
+                        'line-join': 'round',
+                        'line-cap': 'round',
+                      }}
+                      paint={{
+                        'line-color': vehicle.isPolice ? '#60A5FA' : '#94A3B8', // Light blue for police, gray for normal
+                        'line-width': 3,
+                        'line-opacity': 0.6,
+                      }}
+                    />
+                  </Source>
+                )
+              })}
 
               {/* Vehicle Markers */}
               {vehicles.map((vehicle) => (

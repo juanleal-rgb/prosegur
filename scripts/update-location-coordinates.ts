@@ -31,9 +31,9 @@ async function main() {
   const serrano = await prisma.location.updateMany({
     where: { name: 'Zara Serrano' },
     data: {
-      lat: 40.4480,
-      lng: -3.6838,
-      address: 'Calle de Serrano, 23, 28001 Madrid, España',
+      lat: 40.424864,
+      lng: -3.683851,
+      address: 'Calle Serrano, 92, 28006 Madrid, España',
     },
   })
   console.log(`✅ Updated Zara Serrano: ${serrano.count} location(s)`)

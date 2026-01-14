@@ -23,9 +23,9 @@ async function main() {
     },
     {
       name: 'Zara Serrano',
-      lat: 40.4480,
-      lng: -3.6838,
-      address: 'Calle de Serrano, 23, 28001 Madrid, España',
+      lat: 40.424864,
+      lng: -3.683851,
+      address: 'Calle Serrano, 92, 28006 Madrid, España',
     },
   ]
 
