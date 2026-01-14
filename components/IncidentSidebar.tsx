@@ -73,7 +73,12 @@ export default function IncidentSidebar({
       let htmlContent = incident.htmlReport
       console.log('[PDF Download] Step 3: Extracted htmlReport from incident')
       console.log('[PDF Download] Original HTML content length:', htmlContent.length)
-      console.log('[PDF Download] Original HTML preview (first 200 chars):', htmlContent.substring(0, 200))
+      console.log('[PDF Download] Original HTML preview (first 500 chars):', htmlContent.substring(0, 500))
+      console.log('[PDF Download] Original HTML ends with:', htmlContent.substring(Math.max(0, htmlContent.length - 100)))
+      
+      // Check if it's a full HTML document
+      const isFullHTML = htmlContent.includes('<!DOCTYPE html>') || htmlContent.includes('<html>')
+      console.log('[PDF Download] Is full HTML document:', isFullHTML)
       
       // Remove markdown code blocks if present
       console.log('[PDF Download] Step 4: Cleaning HTML (removing markdown blocks if present)')
@@ -121,23 +126,25 @@ export default function IncidentSidebar({
           // Get all body children as HTML
           const bodyChildren = Array.from(bodyElement.children)
           console.log('[PDF Download] Body has', bodyChildren.length, 'direct children')
+          console.log('[PDF Download] Body children:', bodyChildren.map(el => el.tagName).join(', '))
           
-          if (bodyChildren.length > 0) {
-            contentToUse = bodyElement.innerHTML
-            console.log('[PDF Download] Body content extracted from innerHTML, length:', contentToUse.length)
-          } else {
-            // If no children, use textContent
-            contentToUse = bodyElement.textContent || bodyElement.innerHTML
-            console.log('[PDF Download] Body content extracted from textContent, length:', contentToUse.length)
-          }
+          // Always use innerHTML for body content
+          contentToUse = bodyElement.innerHTML
+          console.log('[PDF Download] Body content extracted from innerHTML, length:', contentToUse.length)
+          console.log('[PDF Download] Body innerHTML preview (first 300 chars):', contentToUse.substring(0, 300))
           
           // Verify body has actual content
           const bodyText = bodyElement.textContent || ''
           console.log('[PDF Download] Body textContent length:', bodyText.length)
-          console.log('[PDF Download] Body textContent preview:', bodyText.substring(0, 200))
+          console.log('[PDF Download] Body textContent preview:', bodyText.substring(0, 300))
           
-          if (bodyText.trim().length === 0 && contentToUse.trim().length === 0) {
-            console.warn('[PDF Download] WARNING: Body has no text content and no innerHTML')
+          if (bodyText.trim().length === 0) {
+            console.warn('[PDF Download] WARNING: Body has no text content!')
+            console.warn('[PDF Download] Body innerHTML:', bodyElement.innerHTML.substring(0, 500))
+          }
+          
+          if (contentToUse.trim().length === 0) {
+            console.error('[PDF Download] ERROR: Body innerHTML is empty!')
           }
         } else {
           console.log('[PDF Download] No body element found, trying documentElement')
@@ -296,9 +303,9 @@ export default function IncidentSidebar({
       
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       console.log('[PDF Download] Step 13: Adding element to DOM (off-screen)')
-      // Use fixed positioning instead of absolute to ensure it's rendered
-      element.style.position = 'fixed'
-      element.style.left = '0'
+      // Use absolute positioning off-screen but ensure it has dimensions
+      element.style.position = 'absolute'
+      element.style.left = '-9999px'
       element.style.top = '0'
       element.style.width = '210mm'
       element.style.maxWidth = '210mm'
@@ -308,28 +315,51 @@ export default function IncidentSidebar({
       element.style.visibility = 'visible'
       element.style.display = 'block'
       element.style.overflow = 'visible'
-      // Make it invisible but still rendered
-      element.style.opacity = '0.01'
+      element.style.opacity = '1' // Full opacity for proper rendering
       element.style.pointerEvents = 'none'
       document.body.appendChild(element)
-      console.log('[PDF Download] Element added to DOM with fixed positioning')
+      console.log('[PDF Download] Element added to DOM with absolute positioning')
 
-      // Force a reflow to ensure rendering
+      // Force multiple reflows to ensure rendering
       console.log('[PDF Download] Step 14: Forcing reflow')
       void element.offsetHeight
-      console.log('[PDF Download] Reflow complete, element dimensions:', {
+      void element.scrollHeight
+      void element.clientHeight
+      
+      // Wait a bit for initial render
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Force another reflow
+      void element.offsetHeight
+      
+      console.log('[PDF Download] Initial reflow complete, element dimensions:', {
         offsetHeight: element.offsetHeight,
         offsetWidth: element.offsetWidth,
         scrollHeight: element.scrollHeight,
-        scrollWidth: element.scrollWidth
+        scrollWidth: element.scrollWidth,
+        clientHeight: element.clientHeight,
+        clientWidth: element.clientWidth
       })
+      
+      // Check if element has height
+      if (element.offsetHeight === 0 || element.scrollHeight === 0) {
+        console.warn('[PDF Download] WARNING: Element has zero height! Trying to fix...')
+        // Force explicit height
+        const computedHeight = element.scrollHeight || 1123
+        element.style.height = `${computedHeight}px`
+        element.style.minHeight = `${computedHeight}px`
+        console.log('[PDF Download] Set explicit height to:', computedHeight)
+        // Force another reflow
+        void element.offsetHeight
+      }
 
       // Wait for rendering and styles to apply, and for images to load
-      console.log('[PDF Download] Step 15: Waiting 1000ms for rendering and styles to apply')
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('[PDF Download] Step 15: Waiting 1500ms for rendering and styles to apply')
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Force another reflow after wait
+      // Force final reflow after wait
       void element.offsetHeight
+      void element.scrollHeight
       
       console.log('[PDF Download] Wait complete, final dimensions:', {
         scrollHeight: element.scrollHeight,
@@ -337,8 +367,22 @@ export default function IncidentSidebar({
         offsetHeight: element.offsetHeight,
         offsetWidth: element.offsetWidth,
         clientHeight: element.clientHeight,
-        clientWidth: element.clientWidth
+        clientWidth: element.clientWidth,
+        computedStyle: {
+          height: window.getComputedStyle(element).height,
+          width: window.getComputedStyle(element).width,
+          display: window.getComputedStyle(element).display,
+          visibility: window.getComputedStyle(element).visibility
+        }
       })
+      
+      // Final check - element MUST have height
+      if (element.offsetHeight === 0 || element.scrollHeight === 0) {
+        console.error('[PDF Download] ERROR: Element still has zero height after all attempts!')
+        console.error('[PDF Download] Element innerHTML length:', element.innerHTML.length)
+        console.error('[PDF Download] Element children:', element.children.length)
+        throw new Error('Element has zero height and cannot be rendered to PDF')
+      }
       
       // Verify element has content
       if (!element.innerHTML || element.innerHTML.trim().length === 0) {
@@ -385,8 +429,8 @@ export default function IncidentSidebar({
           backgroundColor: '#ffffff',
           letterRendering: true,
           allowTaint: true,
-          windowWidth: element.scrollWidth || 800,
-          windowHeight: element.scrollHeight || 1200,
+          windowWidth: Math.max(element.scrollWidth, element.offsetWidth, 794),
+          windowHeight: Math.max(element.scrollHeight, element.offsetHeight, 1123),
           onclone: (clonedDoc: any) => {
             console.log('[PDF Download] html2canvas onclone callback triggered')
             console.log('[PDF Download] Cloned document body:', clonedDoc.body)
