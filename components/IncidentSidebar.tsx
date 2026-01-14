@@ -57,22 +57,62 @@ export default function IncidentSidebar({
       // Dynamically import html2pdf.js (client-side only)
       const html2pdf = (await import('html2pdf.js')).default
       
-      // Create element with the HTML content - simple approach that worked before
+      // Extract content from HTML - handle cases where HTML comes with <html> and <body> tags
+      let htmlContent = incident.htmlReport
+      
+      // Remove markdown code blocks if present
+      htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '').trim()
+      
+      // If HTML contains <html> or <body> tags, extract the inner content
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = htmlContent
+      
+      // Try to extract body content, or use the whole content
+      const bodyElement = tempDiv.querySelector('body')
+      const htmlElement = tempDiv.querySelector('html')
+      
+      let contentToUse = htmlContent
+      if (bodyElement) {
+        contentToUse = bodyElement.innerHTML
+      } else if (htmlElement) {
+        contentToUse = htmlElement.innerHTML
+      }
+      
+      // Create wrapper element for PDF generation
       const element = document.createElement('div')
-      element.innerHTML = incident.htmlReport
+      element.style.fontFamily = 'sans-serif'
+      element.style.padding = '20px'
+      element.style.backgroundColor = '#ffffff'
+      element.style.color = '#000000'
+      element.style.width = '210mm' // A4 width
+      element.style.boxSizing = 'border-box'
+      element.innerHTML = contentToUse
+      
+      // Ensure all elements have proper visibility and colors
+      const allElements = element.querySelectorAll('*')
+      allElements.forEach((el) => {
+        const htmlEl = el as HTMLElement
+        htmlEl.style.visibility = 'visible'
+        htmlEl.style.opacity = '1'
+        
+        // Ensure text is black if not specified
+        const computedColor = window.getComputedStyle(htmlEl).color
+        if (computedColor === 'rgba(0, 0, 0, 0)' || computedColor === 'transparent') {
+          htmlEl.style.color = '#000000'
+        }
+      })
       
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       element.style.position = 'absolute'
       element.style.left = '-9999px'
       element.style.top = '0'
-      element.style.width = '210mm' // A4 width
       document.body.appendChild(element)
 
-      // Wait a moment for rendering
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Wait a moment for rendering and styles to apply
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       const opt = {
-        margin: 1,
+        margin: [10, 10, 10, 10],
         filename: `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
@@ -80,8 +120,9 @@ export default function IncidentSidebar({
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
+          letterRendering: true,
         },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       }
 
       await html2pdf().set(opt).from(element).save()
