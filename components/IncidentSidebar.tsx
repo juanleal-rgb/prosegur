@@ -335,21 +335,25 @@ export default function IncidentSidebar({
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       console.log('[PDF Download] Step 13: Adding element to DOM (off-screen)')
       // Use absolute positioning off-screen but ensure it has dimensions
+      // CRITICAL: Set explicit height BEFORE adding to DOM
+      const finalHeight = element.scrollHeight || 1123
+      element.style.height = `${finalHeight}px`
+      element.style.minHeight = `${finalHeight}px`
+      
       element.style.position = 'absolute'
       element.style.left = '-9999px'
       element.style.top = '0'
-      element.style.width = '210mm'
-      element.style.maxWidth = '210mm'
-      element.style.height = 'auto'
-      element.style.minHeight = '297mm'
+      element.style.width = '794px'
+      element.style.maxWidth = '794px'
       element.style.zIndex = '9999'
       element.style.visibility = 'visible'
       element.style.display = 'block'
       element.style.overflow = 'visible'
       element.style.opacity = '1' // Full opacity for proper rendering
       element.style.pointerEvents = 'none'
+      
       document.body.appendChild(element)
-      console.log('[PDF Download] Element added to DOM with absolute positioning')
+      console.log('[PDF Download] Element added to DOM with explicit height:', finalHeight, 'px')
 
       // Force multiple reflows to ensure rendering
       console.log('[PDF Download] Step 14: Forcing reflow')
@@ -472,38 +476,22 @@ export default function IncidentSidebar({
               scrollWidth: element.scrollWidth
             })
             
-            // Find the cloned element by ID or data attribute
+            // Find the cloned element by data attribute (most reliable)
             const clonedBody = clonedDoc.body
-            console.log('[PDF Download] Cloned body:', clonedBody)
+            let clonedElement = clonedBody?.querySelector('[data-pdf-element="true"]') as HTMLElement
             
-            // Try to find by ID first
-            let clonedElement: HTMLElement | null = null
-            if (element.id) {
+            // If not found, try by ID
+            if (!clonedElement && element.id) {
               clonedElement = clonedDoc.getElementById(element.id)
-              if (clonedElement) {
-                console.log('[PDF Download] Found cloned element by ID:', element.id)
-              }
-            }
-            
-            // If not found by ID, try data attribute
-            if (!clonedElement) {
-              clonedElement = clonedBody?.querySelector('[data-pdf-element="true"]') as HTMLElement
-              if (clonedElement) {
-                console.log('[PDF Download] Found cloned element by data attribute')
-              }
             }
             
             // If still not found, search by content
             if (!clonedElement) {
               const allDivs = clonedBody?.querySelectorAll('div') || []
-              console.log('[PDF Download] Searching by content, all divs:', allDivs.length)
-              
               for (let i = 0; i < allDivs.length; i++) {
                 const div = allDivs[i] as HTMLElement
-                if (div.innerHTML.includes('Informe de Incidencia de Seguridad') || 
-                    div.innerHTML.includes('severity-high')) {
+                if (div.innerHTML.includes('Informe de Incidencia de Seguridad')) {
                   clonedElement = div
-                  console.log('[PDF Download] Found cloned element by content at index:', i)
                   break
                 }
               }
@@ -517,57 +505,43 @@ export default function IncidentSidebar({
                 scrollWidth: clonedElement.scrollWidth
               })
               
-              // Get dimensions from original element
-              const originalHeight = element.scrollHeight || element.offsetHeight || 1123
-              const originalWidth = element.scrollWidth || element.offsetWidth || 794
+              // Get dimensions from original element (use scrollHeight as it's most reliable)
+              const originalHeight = element.scrollHeight || 1123
+              const originalWidth = element.scrollWidth || 794
               
-              // Apply ALL necessary styles to ensure visibility and dimensions
-              clonedElement.style.cssText = `
-                visibility: visible !important;
-                opacity: 1 !important;
-                display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: ${originalWidth}px !important;
-                height: ${originalHeight}px !important;
-                min-height: ${originalHeight}px !important;
-                max-height: ${originalHeight}px !important;
-                overflow: visible !important;
-                font-family: Arial, sans-serif !important;
-                padding: 20px !important;
-                background-color: #ffffff !important;
-                color: #000000 !important;
-                box-sizing: border-box !important;
-              `
+              // Apply styles individually (NOT cssText) to preserve existing styles
+              clonedElement.style.visibility = 'visible'
+              clonedElement.style.opacity = '1'
+              clonedElement.style.display = 'block'
+              clonedElement.style.position = 'absolute'
+              clonedElement.style.left = '0'
+              clonedElement.style.top = '0'
+              clonedElement.style.width = `${originalWidth}px`
+              clonedElement.style.height = `${originalHeight}px`
+              clonedElement.style.minHeight = `${originalHeight}px`
+              clonedElement.style.maxHeight = 'none' // Don't restrict max-height
+              clonedElement.style.overflow = 'visible'
               
-              console.log('[PDF Download] Cloned element styled with cssText, dimensions:', {
+              console.log('[PDF Download] Cloned element styled, dimensions:', {
                 width: `${originalWidth}px`,
                 height: `${originalHeight}px`
               })
               
-              // Force multiple reflows
+              // Force immediate reflow (synchronous)
               void clonedElement.offsetHeight
               void clonedElement.scrollHeight
-              void clonedElement.clientHeight
               
-              // Wait a tiny bit for styles to apply
-              setTimeout(() => {
-                console.log('[PDF Download] Cloned element AFTER styling and reflow:', {
-                  offsetHeight: clonedElement!.offsetHeight,
-                  offsetWidth: clonedElement!.offsetWidth,
-                  scrollHeight: clonedElement!.scrollHeight,
-                  scrollWidth: clonedElement!.scrollWidth,
-                  clientHeight: clonedElement!.clientHeight,
-                  clientWidth: clonedElement!.clientWidth,
-                  computedHeight: clonedDoc.defaultView?.getComputedStyle(clonedElement!).height,
-                  computedWidth: clonedDoc.defaultView?.getComputedStyle(clonedElement!).width
-                })
-              }, 0)
+              // Log immediately (synchronous)
+              console.log('[PDF Download] Cloned element AFTER styling (immediate):', {
+                offsetHeight: clonedElement.offsetHeight,
+                offsetWidth: clonedElement.offsetWidth,
+                scrollHeight: clonedElement.scrollHeight,
+                scrollWidth: clonedElement.scrollWidth,
+                computedHeight: clonedDoc.defaultView?.getComputedStyle(clonedElement).height,
+                computedWidth: clonedDoc.defaultView?.getComputedStyle(clonedElement).width
+              })
             } else {
               console.error('[PDF Download] ERROR: Cloned element not found in onclone!')
-              console.error('[PDF Download] Element ID was:', element.id)
-              console.error('[PDF Download] Cloned body innerHTML length:', clonedBody?.innerHTML?.length || 0)
             }
           }
         },
