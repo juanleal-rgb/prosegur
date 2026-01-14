@@ -61,32 +61,101 @@ export default function IncidentSidebar({
       let htmlContent = incident.htmlReport
       
       // Remove markdown code blocks if present
-      htmlContent = htmlContent.replace(/```html/g, '').replace(/```/g, '').trim()
+      htmlContent = htmlContent.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim()
       
-      // If HTML contains <html> or <body> tags, extract the inner content
-      const tempDiv = document.createElement('div')
-      tempDiv.innerHTML = htmlContent
+      // Parse the HTML to extract styles and content
+      // Create a temporary document to parse the HTML properly
+      let styles = ''
+      let contentToUse = ''
       
-      // Try to extract body content, or use the whole content
-      const bodyElement = tempDiv.querySelector('body')
-      const htmlElement = tempDiv.querySelector('html')
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(htmlContent, 'text/html')
+        
+        // Check for parsing errors
+        const parserError = doc.querySelector('parsererror')
+        if (parserError) {
+          throw new Error('HTML parsing error')
+        }
+        
+        // Extract styles from <head> or <style> tags
+        const headStyles = doc.querySelectorAll('head style, style')
+        headStyles.forEach(style => {
+          if (style.textContent) {
+            styles += style.textContent + '\n'
+          }
+        })
+        
+        // Try to extract body content, or use the whole document body
+        const bodyElement = doc.querySelector('body')
+        
+        if (bodyElement && bodyElement.innerHTML.trim()) {
+          contentToUse = bodyElement.innerHTML
+        } else {
+          // If no body tag, use the entire HTML content but remove html/head tags
+          const htmlElement = doc.documentElement
+          if (htmlElement) {
+            // Remove head and style tags from content
+            const clone = htmlElement.cloneNode(true) as HTMLElement
+            const headToRemove = clone.querySelector('head')
+            const stylesToRemove = clone.querySelectorAll('style')
+            if (headToRemove) headToRemove.remove()
+            stylesToRemove.forEach(s => s.remove())
+            contentToUse = clone.innerHTML
+          } else {
+            contentToUse = htmlContent
+          }
+        }
+      } catch (parseError) {
+        // Fallback: use simple parsing
+        console.warn('DOMParser failed, using fallback:', parseError)
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = htmlContent
+        
+        // Extract styles
+        const styleElements = tempDiv.querySelectorAll('style')
+        styleElements.forEach(style => {
+          if (style.textContent) {
+            styles += style.textContent + '\n'
+          }
+        })
+        
+        // Extract body or use all content
+        const bodyElement = tempDiv.querySelector('body')
+        if (bodyElement) {
+          contentToUse = bodyElement.innerHTML
+        } else {
+          // Remove style tags from content
+          const clone = tempDiv.cloneNode(true) as HTMLElement
+          const stylesToRemove = clone.querySelectorAll('style')
+          stylesToRemove.forEach(s => s.remove())
+          contentToUse = clone.innerHTML || htmlContent
+        }
+      }
       
-      let contentToUse = htmlContent
-      if (bodyElement) {
-        contentToUse = bodyElement.innerHTML
-      } else if (htmlElement) {
-        contentToUse = htmlElement.innerHTML
+      // Ensure we have content
+      if (!contentToUse || contentToUse.trim().length === 0) {
+        contentToUse = htmlContent
       }
       
       // Create wrapper element for PDF generation
       const element = document.createElement('div')
-      element.style.fontFamily = 'sans-serif'
+      element.style.fontFamily = 'Arial, sans-serif'
       element.style.padding = '20px'
       element.style.backgroundColor = '#ffffff'
       element.style.color = '#000000'
       element.style.width = '210mm' // A4 width
       element.style.boxSizing = 'border-box'
-      element.innerHTML = contentToUse
+      element.style.minHeight = '297mm' // A4 height
+      
+      // Build the complete HTML structure
+      let finalHTML = ''
+      if (styles) {
+        finalHTML += `<style>${styles}</style>`
+      }
+      finalHTML += contentToUse
+      
+      element.innerHTML = finalHTML
       
       // Ensure all elements have proper visibility and colors
       const allElements = element.querySelectorAll('*')
@@ -102,14 +171,49 @@ export default function IncidentSidebar({
         }
       })
       
+      // Ensure tables and other elements are visible
+      const tables = element.querySelectorAll('table')
+      tables.forEach(table => {
+        const htmlTable = table as HTMLElement
+        htmlTable.style.borderCollapse = 'collapse'
+        htmlTable.style.width = '100%'
+        htmlTable.style.marginTop = '20px'
+      })
+      
+      const cells = element.querySelectorAll('th, td')
+      cells.forEach(cell => {
+        const htmlCell = cell as HTMLElement
+        htmlCell.style.border = '1px solid #bdc3c7'
+        htmlCell.style.padding = '12px'
+        htmlCell.style.textAlign = 'left'
+      })
+      
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       element.style.position = 'absolute'
       element.style.left = '-9999px'
       element.style.top = '0'
+      element.style.zIndex = '-1'
+      element.style.visibility = 'visible'
+      element.style.display = 'block'
       document.body.appendChild(element)
 
-      // Wait a moment for rendering and styles to apply
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Force a reflow to ensure rendering
+      void element.offsetHeight
+
+      // Wait for rendering and styles to apply, and for images to load
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      // Verify element has content
+      if (!element.innerHTML || element.innerHTML.trim().length === 0) {
+        throw new Error('El elemento está vacío después del renderizado')
+      }
+      
+      // Log for debugging
+      console.log('Generando PDF con contenido:', {
+        hasContent: element.innerHTML.length > 0,
+        elementHeight: element.scrollHeight,
+        elementWidth: element.scrollWidth
+      })
 
       const opt = {
         margin: [10, 10, 10, 10],
@@ -118,9 +222,21 @@ export default function IncidentSidebar({
         html2canvas: { 
           scale: 2,
           useCORS: true,
-          logging: false,
+          logging: true, // Enable logging to debug
           backgroundColor: '#ffffff',
           letterRendering: true,
+          allowTaint: true,
+          windowWidth: element.scrollWidth || 800,
+          windowHeight: element.scrollHeight || 1200,
+          onclone: (clonedDoc: any) => {
+            // Ensure cloned document has proper styles
+            const clonedElement = clonedDoc.body?.querySelector('div')
+            if (clonedElement) {
+              clonedElement.style.visibility = 'visible'
+              clonedElement.style.opacity = '1'
+              clonedElement.style.display = 'block'
+            }
+          }
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       }
