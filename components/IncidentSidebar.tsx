@@ -82,7 +82,7 @@ export default function IncidentSidebar({
       console.log('[PDF Download] After cleaning - length:', htmlContent.length, '(was:', beforeClean, ')')
       
       // Parse the HTML to extract styles and content
-      // Create a temporary document to parse the HTML properly
+      // Use iframe approach for better HTML rendering
       console.log('[PDF Download] Step 5: Parsing HTML with DOMParser')
       let styles = ''
       let contentToUse = ''
@@ -96,6 +96,7 @@ export default function IncidentSidebar({
         const parserError = doc.querySelector('parsererror')
         if (parserError) {
           console.log('[PDF Download] ERROR: HTML parsing error detected')
+          console.log('[PDF Download] Parser error:', parserError.textContent)
           throw new Error('HTML parsing error')
         }
         console.log('[PDF Download] HTML parsing successful, no errors')
@@ -112,34 +113,50 @@ export default function IncidentSidebar({
         })
         console.log('[PDF Download] Total styles length:', styles.length)
         
-        // Try to extract body content, or use the whole document body
+        // Try to extract body content
         console.log('[PDF Download] Step 7: Extracting body content')
         const bodyElement = doc.querySelector('body')
         
-        if (bodyElement && bodyElement.innerHTML.trim()) {
-          contentToUse = bodyElement.innerHTML
-          console.log('[PDF Download] Body content extracted, length:', contentToUse.length)
-          console.log('[PDF Download] Body content preview:', contentToUse.substring(0, 300))
+        if (bodyElement) {
+          // Get all body children as HTML
+          const bodyChildren = Array.from(bodyElement.children)
+          console.log('[PDF Download] Body has', bodyChildren.length, 'direct children')
+          
+          if (bodyChildren.length > 0) {
+            contentToUse = bodyElement.innerHTML
+            console.log('[PDF Download] Body content extracted from innerHTML, length:', contentToUse.length)
+          } else {
+            // If no children, use textContent
+            contentToUse = bodyElement.textContent || bodyElement.innerHTML
+            console.log('[PDF Download] Body content extracted from textContent, length:', contentToUse.length)
+          }
           
           // Verify body has actual content
           const bodyText = bodyElement.textContent || ''
           console.log('[PDF Download] Body textContent length:', bodyText.length)
-          if (bodyText.trim().length === 0) {
-            console.warn('[PDF Download] WARNING: Body has no text content, but has innerHTML')
+          console.log('[PDF Download] Body textContent preview:', bodyText.substring(0, 200))
+          
+          if (bodyText.trim().length === 0 && contentToUse.trim().length === 0) {
+            console.warn('[PDF Download] WARNING: Body has no text content and no innerHTML')
           }
         } else {
-          // If no body tag, use the entire HTML content but remove html/head tags
-          console.log('[PDF Download] No body element found, using fallback extraction')
+          console.log('[PDF Download] No body element found, trying documentElement')
+          // If no body tag, try to get content from documentElement
           const htmlElement = doc.documentElement
           if (htmlElement) {
-            // Remove head and style tags from content
-            const clone = htmlElement.cloneNode(true) as HTMLElement
-            const headToRemove = clone.querySelector('head')
-            const stylesToRemove = clone.querySelectorAll('style')
-            if (headToRemove) headToRemove.remove()
-            stylesToRemove.forEach(s => s.remove())
-            contentToUse = clone.innerHTML
-            console.log('[PDF Download] Content extracted from htmlElement, length:', contentToUse.length)
+            // Get body from htmlElement
+            const bodyInHtml = htmlElement.querySelector('body')
+            if (bodyInHtml) {
+              contentToUse = bodyInHtml.innerHTML
+              console.log('[PDF Download] Body found in htmlElement, content length:', contentToUse.length)
+            } else {
+              // Last resort: use all content but remove head
+              const clone = htmlElement.cloneNode(true) as HTMLElement
+              const headToRemove = clone.querySelector('head')
+              if (headToRemove) headToRemove.remove()
+              contentToUse = clone.innerHTML
+              console.log('[PDF Download] Content extracted from htmlElement (no body), length:', contentToUse.length)
+            }
           } else {
             contentToUse = htmlContent
             console.log('[PDF Download] Using original htmlContent as fallback, length:', contentToUse.length)
@@ -158,25 +175,31 @@ export default function IncidentSidebar({
             styles += style.textContent + '\n'
           }
         })
+        console.log('[PDF Download] Fallback: extracted', styles.length, 'chars of styles')
         
         // Extract body or use all content
         const bodyElement = tempDiv.querySelector('body')
         if (bodyElement) {
           contentToUse = bodyElement.innerHTML
+          console.log('[PDF Download] Fallback: body content length:', contentToUse.length)
         } else {
           // Remove style tags from content
           const clone = tempDiv.cloneNode(true) as HTMLElement
           const stylesToRemove = clone.querySelectorAll('style')
           stylesToRemove.forEach(s => s.remove())
           contentToUse = clone.innerHTML || htmlContent
+          console.log('[PDF Download] Fallback: using clone content, length:', contentToUse.length)
         }
       }
       
       // Ensure we have content
       if (!contentToUse || contentToUse.trim().length === 0) {
-        console.log('[PDF Download] WARNING: contentToUse is empty, using original htmlContent')
+        console.error('[PDF Download] ERROR: contentToUse is empty! Using original htmlContent')
         contentToUse = htmlContent
       }
+      
+      console.log('[PDF Download] Final contentToUse length:', contentToUse.length)
+      console.log('[PDF Download] Final contentToUse preview:', contentToUse.substring(0, 500))
       console.log('[PDF Download] Step 8: Final content to use, length:', contentToUse.length)
       console.log('[PDF Download] Final styles length:', styles.length)
       
@@ -194,17 +217,24 @@ export default function IncidentSidebar({
       // Build the complete HTML structure
       console.log('[PDF Download] Step 10: Building final HTML structure')
       let finalHTML = ''
-      if (styles) {
+      
+      // Always include styles if we have them
+      if (styles && styles.trim().length > 0) {
         finalHTML += `<style>${styles}</style>`
         console.log('[PDF Download] Added styles to finalHTML, styles length:', styles.length)
       } else {
-        console.warn('[PDF Download] WARNING: No styles extracted!')
+        console.warn('[PDF Download] WARNING: No styles extracted! HTML might not render correctly.')
       }
       
       // Ensure we have content
       if (!contentToUse || contentToUse.trim().length === 0) {
         console.error('[PDF Download] ERROR: contentToUse is empty! Using original HTML')
-        contentToUse = htmlContent
+        // Try to extract body from original HTML as last resort
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = htmlContent
+        const bodyEl = tempDiv.querySelector('body')
+        contentToUse = bodyEl ? bodyEl.innerHTML : htmlContent
+        console.log('[PDF Download] Fallback contentToUse length:', contentToUse.length)
       }
       
       finalHTML += contentToUse
@@ -212,13 +242,18 @@ export default function IncidentSidebar({
       console.log('[PDF Download] Final HTML preview (first 500 chars):', finalHTML.substring(0, 500))
       console.log('[PDF Download] Final HTML preview (last 200 chars):', finalHTML.substring(Math.max(0, finalHTML.length - 200)))
       
-      // Clear element first
-      element.innerHTML = ''
+      // Set innerHTML
       element.innerHTML = finalHTML
       console.log('[PDF Download] Element innerHTML set')
       console.log('[PDF Download] Element children count:', element.children.length)
       console.log('[PDF Download] Element textContent length:', element.textContent?.length || 0)
       console.log('[PDF Download] Element textContent preview:', element.textContent?.substring(0, 200))
+      
+      // Verify we have actual DOM elements
+      const allElementsCheck = element.querySelectorAll('*')
+      console.log('[PDF Download] Total DOM elements in element:', allElementsCheck.length)
+      const textElements = element.querySelectorAll('p, h1, h2, h3, td, th, div')
+      console.log('[PDF Download] Text-containing elements:', textElements.length)
       
       // Ensure all elements have proper visibility and colors
       console.log('[PDF Download] Step 11: Applying visibility and color styles to all elements')
