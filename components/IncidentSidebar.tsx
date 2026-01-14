@@ -273,26 +273,6 @@ export default function IncidentSidebar({
       const textElements = element.querySelectorAll('p, h1, h2, h3, td, th, div')
       console.log('[PDF Download] Text-containing elements:', textElements.length)
       
-      // Force explicit height calculation BEFORE adding to DOM
-      // This ensures html2canvas sees the correct dimensions
-      const tempContainer = document.createElement('div')
-      tempContainer.style.position = 'absolute'
-      tempContainer.style.visibility = 'hidden'
-      tempContainer.style.width = '794px'
-      tempContainer.appendChild(element.cloneNode(true))
-      document.body.appendChild(tempContainer)
-      const tempElement = tempContainer.firstElementChild as HTMLElement
-      const calculatedHeight = tempElement.scrollHeight || tempElement.offsetHeight || 1123
-      document.body.removeChild(tempContainer)
-      
-      console.log('[PDF Download] Calculated height before DOM:', calculatedHeight)
-      
-      // Set explicit height based on calculated value
-      element.style.height = `${calculatedHeight}px`
-      element.style.minHeight = `${calculatedHeight}px`
-      element.style.maxHeight = `${calculatedHeight}px`
-      console.log('[PDF Download] Set explicit height to:', calculatedHeight, 'px')
-      
       // Ensure all elements have proper visibility and colors
       console.log('[PDF Download] Step 11: Applying visibility and color styles to all elements')
       const allElements = element.querySelectorAll('*')
@@ -334,26 +314,50 @@ export default function IncidentSidebar({
       
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       console.log('[PDF Download] Step 13: Adding element to DOM (off-screen)')
-      // Use absolute positioning off-screen but ensure it has dimensions
-      // CRITICAL: Set explicit height BEFORE adding to DOM
-      const finalHeight = element.scrollHeight || 1123
-      element.style.height = `${finalHeight}px`
-      element.style.minHeight = `${finalHeight}px`
+      
+      // CRITICAL: Calculate and set explicit dimensions BEFORE adding to DOM
+      // Create a temporary container to measure the element
+      const measureContainer = document.createElement('div')
+      measureContainer.style.position = 'absolute'
+      measureContainer.style.visibility = 'hidden'
+      measureContainer.style.width = '794px'
+      measureContainer.appendChild(element.cloneNode(true))
+      document.body.appendChild(measureContainer)
+      
+      const tempElement = measureContainer.firstElementChild as HTMLElement
+      const measuredHeight = tempElement.scrollHeight || tempElement.offsetHeight || 1123
+      const measuredWidth = tempElement.scrollWidth || tempElement.offsetWidth || 794
+      
+      document.body.removeChild(measureContainer)
+      
+      console.log('[PDF Download] Measured dimensions:', {
+        height: measuredHeight,
+        width: measuredWidth
+      })
+      
+      // Set explicit dimensions on the actual element
+      element.style.height = `${measuredHeight}px`
+      element.style.minHeight = `${measuredHeight}px`
+      element.style.maxHeight = `${measuredHeight}px`
+      element.style.width = `${measuredWidth}px`
+      element.style.maxWidth = `${measuredWidth}px`
       
       element.style.position = 'absolute'
       element.style.left = '-9999px'
       element.style.top = '0'
-      element.style.width = '794px'
-      element.style.maxWidth = '794px'
       element.style.zIndex = '9999'
       element.style.visibility = 'visible'
       element.style.display = 'block'
       element.style.overflow = 'visible'
-      element.style.opacity = '1' // Full opacity for proper rendering
+      element.style.opacity = '1'
       element.style.pointerEvents = 'none'
+      element.style.boxSizing = 'border-box'
       
       document.body.appendChild(element)
-      console.log('[PDF Download] Element added to DOM with explicit height:', finalHeight, 'px')
+      console.log('[PDF Download] Element added to DOM with explicit dimensions:', {
+        height: `${measuredHeight}px`,
+        width: `${measuredWidth}px`
+      })
 
       // Force multiple reflows to ensure rendering
       console.log('[PDF Download] Step 14: Forcing reflow')
@@ -464,8 +468,19 @@ export default function IncidentSidebar({
           backgroundColor: '#ffffff',
           letterRendering: true,
           allowTaint: true,
-          windowWidth: Math.max(element.scrollWidth, element.offsetWidth, 794),
-          windowHeight: Math.max(element.scrollHeight, element.offsetHeight, 1123),
+          windowWidth: element.offsetWidth || 794,
+          windowHeight: element.offsetHeight || 1123,
+          ignoreElements: (element: Element) => {
+            // Ignore elements that are not our PDF element
+            const isOurElement = element.hasAttribute('data-pdf-element') || 
+                                 element.id?.startsWith('pdf-element-')
+            if (!isOurElement && element !== document.body) {
+              // Only ignore if it's not a child of our element
+              const isChild = element.closest('[data-pdf-element="true"]')
+              return !isChild && element !== document.body
+            }
+            return false
+          },
           onclone: (clonedDoc: any, element: HTMLElement) => {
             console.log('[PDF Download] html2canvas onclone callback triggered')
             console.log('[PDF Download] Original element ID:', element.id)
