@@ -58,98 +58,38 @@ export default function IncidentSidebar({
       // Dynamically import html2pdf.js (client-side only)
       const html2pdf = (await import('html2pdf.js')).default
       
-      // Create a clean wrapper with explicit styles
-      const wrapper = document.createElement('div')
-      wrapper.id = 'pdf-wrapper-temp'
+      // Create element with the HTML content - simple approach that worked before
+      const element = document.createElement('div')
+      element.innerHTML = incident.htmlReport
       
-      // Set explicit styles for PDF generation
-      Object.assign(wrapper.style, {
-        width: '794px', // A4 width in pixels at 96 DPI
-        minHeight: '1123px', // A4 height in pixels
-        padding: '40px',
-        fontFamily: 'Arial, Helvetica, sans-serif',
-        backgroundColor: '#ffffff',
-        color: '#000000',
-        boxSizing: 'border-box',
-        position: 'absolute',
-        left: '-9999px',
-        top: '0',
-        zIndex: '-1',
-        visibility: 'visible',
-        opacity: '1',
-      })
-      
-      // Set the HTML content
-      wrapper.innerHTML = incident.htmlReport
-      
-      // Force all elements to be visible and have proper colors
-      const allElements = wrapper.querySelectorAll('*')
-      allElements.forEach((el: Element) => {
-        const htmlEl = el as HTMLElement
-        
-        // Force text color for text elements
-        const textElements = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'TD', 'TH', 'LI', 'DIV', 'STRONG', 'B', 'EM', 'I']
-        if (textElements.includes(htmlEl.tagName)) {
-          const computedColor = window.getComputedStyle(htmlEl).color
-          if (!computedColor || computedColor === 'transparent' || computedColor === 'rgba(0, 0, 0, 0)') {
-            htmlEl.style.color = '#000000'
-          }
-        }
-        
-        // Ensure visibility
-        htmlEl.style.visibility = 'visible'
-        htmlEl.style.opacity = '1'
-        htmlEl.style.display = htmlEl.style.display || ''
-        
-        // Fix table borders
-        if (htmlEl.tagName === 'TD' || htmlEl.tagName === 'TH') {
-          const border = htmlEl.style.border || window.getComputedStyle(htmlEl).border
-          if (!border || border === 'none' || border === '0px') {
-            htmlEl.style.border = '1px solid #000000'
-          }
-        }
-      })
-      
-      // Add to DOM
-      document.body.appendChild(wrapper)
-      
-      // Force layout recalculation
-      void wrapper.offsetHeight
-      void wrapper.scrollHeight
-      
-      // Wait for rendering
-      await new Promise(resolve => setTimeout(resolve, 300))
+      // Add to DOM temporarily (off-screen) to ensure proper rendering
+      element.style.position = 'absolute'
+      element.style.left = '-9999px'
+      element.style.top = '0'
+      element.style.width = '210mm' // A4 width
+      document.body.appendChild(element)
+
+      // Wait a moment for rendering
+      await new Promise(resolve => setTimeout(resolve, 200))
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: 1,
         filename: `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { 
-          type: 'jpeg', 
-          quality: 0.98 
-        },
+        image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
-          letterRendering: true,
-          allowTaint: false,
-          removeContainer: true,
         },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait',
-          compress: true
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
       }
 
-      await html2pdf().set(opt).from(wrapper).save()
+      await html2pdf().set(opt).from(element).save()
       
       // Clean up
-      if (document.body.contains(wrapper)) {
-        document.body.removeChild(wrapper)
+      if (document.body.contains(element)) {
+        document.body.removeChild(element)
       }
     } catch (error) {
       console.error('Error generating PDF:', error)
