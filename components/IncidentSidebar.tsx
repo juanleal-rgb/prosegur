@@ -123,8 +123,8 @@ export default function IncidentSidebar({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-start gap-4">
-            <div className="rounded-lg bg-[var(--prosegur-primary)]/10 dark:bg-blue-500/10 p-3">
-              <MapPin className="h-6 w-6 text-[var(--prosegur-primary)] dark:text-blue-400" />
+            <div className="rounded-lg bg-[var(--prosegur-primary)]/20 dark:bg-[var(--prosegur-primary)]/30 p-3">
+              <MapPin className="h-6 w-6 text-[var(--prosegur-accent)] dark:text-[var(--prosegur-primary)]" />
             </div>
             <div className="flex-1">
               <DialogTitle className="text-2xl font-semibold text-zinc-900 dark:text-white">

@@ -54,15 +54,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         >
           <div className="relative flex items-center">
             {isCollapsed ? (
-              <div className="h-8 w-8 rounded-lg bg-[var(--prosegur-primary)] dark:bg-blue-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">P</span>
+              <div className="h-8 w-8 rounded-lg bg-[var(--prosegur-primary)] flex items-center justify-center">
+                <span className="text-[var(--prosegur-text-on-yellow)] font-bold text-sm">P</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-[var(--prosegur-primary)] dark:bg-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">P</span>
+                <div className="h-8 w-8 rounded-lg bg-[var(--prosegur-primary)] flex items-center justify-center">
+                  <span className="text-[var(--prosegur-text-on-yellow)] font-bold text-sm">P</span>
                 </div>
-                <span className="text-lg font-bold text-[var(--prosegur-primary)] dark:text-blue-400">
+                <span className="text-lg font-bold text-[var(--prosegur-accent)] dark:text-white">
                   PROSEGUR
                 </span>
               </div>
@@ -84,7 +84,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   "flex items-center gap-3 rounded-lg transition-all duration-200 group relative",
                   isCollapsed ? "px-3 py-2.5 justify-center" : "px-3 py-2.5",
                   isActive
-                    ? "bg-gradient-to-r from-[var(--prosegur-primary)] to-[var(--prosegur-primary-light)] text-white shadow-lg shadow-blue-500/25"
+                    ? "bg-gradient-to-r from-[var(--prosegur-primary)] to-[var(--prosegur-primary-light)] text-[var(--prosegur-text-on-yellow)] shadow-lg shadow-yellow-500/25"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-900 dark:hover:text-white"
                 )}
               >
@@ -110,7 +110,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       className={cn(
                         "text-xs mt-0.5 transition-colors",
                         isActive
-                          ? "text-blue-100"
+                          ? "text-[var(--prosegur-text-on-yellow)]/80"
                           : "text-gray-400 dark:text-gray-500"
                       )}
                     >
@@ -119,7 +119,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
                 {!isCollapsed && isActive && (
-                  <ChevronRight className="h-4 w-4 text-white/70" />
+                  <ChevronRight className="h-4 w-4 text-[var(--prosegur-text-on-yellow)]/70" />
                 )}
               </Link>
             );
@@ -169,8 +169,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         >
           {isCollapsed ? (
             <div className="flex justify-center">
-              <div className="h-6 w-6 rounded bg-[var(--prosegur-primary)] dark:bg-blue-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">P</span>
+              <div className="h-6 w-6 rounded bg-[var(--prosegur-primary)] flex items-center justify-center">
+                <span className="text-[var(--prosegur-text-on-yellow)] font-bold text-xs">P</span>
               </div>
             </div>
           ) : (
@@ -179,10 +179,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 Powered by
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-[var(--prosegur-primary)] dark:bg-blue-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">P</span>
+                <div className="h-6 w-6 rounded bg-[var(--prosegur-primary)] flex items-center justify-center">
+                  <span className="text-[var(--prosegur-text-on-yellow)] font-bold text-xs">P</span>
                 </div>
-                <span className="text-sm font-semibold text-[var(--prosegur-primary)] dark:text-blue-400">
+                <span className="text-sm font-semibold text-[var(--prosegur-accent)] dark:text-white">
                   PROSEGUR
                 </span>
               </div>

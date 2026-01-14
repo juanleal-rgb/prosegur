@@ -25,14 +25,16 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
-    /* PROSEGUR color palette - Light mode */
+    /* PROSEGUR color palette - Light mode (Amarillo y Negro) */
     --prosegur-bg: #F8FAFC;
     --prosegur-card: #FFFFFF;
     --prosegur-border: #E4E4E7;
     --prosegur-surface: #F4F4F5;
-    --prosegur-primary: #003366;
-    --prosegur-primary-light: #004080;
-    --prosegur-accent: #E60012;
+    --prosegur-primary: #FFD700;
+    --prosegur-primary-dark: #FFC700;
+    --prosegur-primary-light: #FFE44D;
+    --prosegur-accent: #000000;
+    --prosegur-text-on-yellow: #000000;
 
     /* Status colors - Light mode */
     --status-success-bg: #DCFCE7;
@@ -70,14 +72,16 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* PROSEGUR color palette - Dark mode */
+    /* PROSEGUR color palette - Dark mode (Amarillo y Negro) */
     --prosegur-bg: #09090B;
     --prosegur-card: #18181B;
     --prosegur-border: #27272A;
     --prosegur-surface: #121217;
-    --prosegur-primary: #1E40AF;
-    --prosegur-primary-light: #3B82F6;
-    --prosegur-accent: #EF4444;
+    --prosegur-primary: #FFD700;
+    --prosegur-primary-dark: #FFC700;
+    --prosegur-primary-light: #FFE44D;
+    --prosegur-accent: #FFFFFF;
+    --prosegur-text-on-yellow: #000000;
 
     /* Status colors - Dark mode */
     --status-success-bg: #052E16;
@@ -182,11 +186,11 @@
 
 /* Selection styling */
 ::selection {
-  background: rgba(0, 51, 102, 0.3);
+  background: rgba(255, 215, 0, 0.3);
 }
 
 .dark ::selection {
-  background: rgba(59, 130, 246, 0.4);
+  background: rgba(255, 215, 0, 0.4);
 }
 
 /* Button cursor */
@@ -199,14 +203,14 @@ button,
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid #003366;
+  outline: 2px solid #FFD700;
   outline-offset: 2px;
 }
 
 .dark button:focus-visible,
 .dark a:focus-visible,
 .dark [role="button"]:focus-visible {
-  outline-color: #3B82F6;
+  outline-color: #FFD700;
 }
 
 /* Ensure Dialog appears above Leaflet map */
