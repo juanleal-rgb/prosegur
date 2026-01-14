@@ -62,6 +62,55 @@ export default function MapDashboard() {
     return () => clearInterval(interval)
   }, [])
 
+  // Update vehicle destinations when locations change
+  useEffect(() => {
+    setVehicles(prevVehicles => {
+      return prevVehicles.map(vehicle => {
+        // Find the location for this vehicle's incident
+        const location = locations.find(loc => 
+          loc.incidents.some(inc => inc.id === vehicle.incidentId)
+        )
+        
+        if (location) {
+          // Update destination coordinates if they changed
+          if (vehicle.endLat !== location.lat || vehicle.endLng !== location.lng) {
+            console.log(`[Vehicle] Updating destination for vehicle ${vehicle.id} to new location:`, {
+              old: { lat: vehicle.endLat, lng: vehicle.endLng },
+              new: { lat: location.lat, lng: location.lng }
+            })
+            
+            // Recalculate route if we have a route
+            if (vehicle.route && process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
+              // Recalculate route in background
+              fetch(
+                `https://api.mapbox.com/directions/v5/mapbox/driving/${policeStationCoords[0]},${policeStationCoords[1]};${location.lng},${location.lat}?geometries=geojson&access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}`
+              )
+                .then(res => res.json())
+                .then(data => {
+                  if (data.routes && data.routes[0]) {
+                    setVehicles(prev => prev.map(v => 
+                      v.id === vehicle.id 
+                        ? { ...v, route: data.routes[0].geometry.coordinates }
+                        : v
+                    ))
+                  }
+                })
+                .catch(err => console.error('Error updating route:', err))
+            }
+            
+            return {
+              ...vehicle,
+              endLat: location.lat,
+              endLng: location.lng
+            }
+          }
+        }
+        
+        return vehicle
+      })
+    })
+  }, [locations])
+
   // Check for new critical incidents and dispatch vehicles
   useEffect(() => {
     const checkForNewCriticalIncidents = async () => {
