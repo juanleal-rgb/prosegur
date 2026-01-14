@@ -10,9 +10,10 @@ async function setupDatabase() {
     // Run migrations (idempotent - safe to run multiple times)
     console.log('📦 Running database migrations...')
     try {
-      execSync('npx prisma db push --skip-generate', { 
+      execSync('npx prisma db push --skip-generate --accept-data-loss', { 
         stdio: 'inherit',
-        env: { ...process.env }
+        env: { ...process.env },
+        timeout: 30000 // 30 second timeout
       })
       console.log('✅ Migrations completed')
     } catch (error: any) {
@@ -35,7 +36,8 @@ async function setupDatabase() {
         console.log('🌱 Database is empty, seeding with initial data...')
         execSync('npx tsx prisma/seed.ts', { 
           stdio: 'inherit',
-          env: { ...process.env }
+          env: { ...process.env },
+          timeout: 30000 // 30 second timeout
         })
         console.log('✅ Seed completed')
       } else {
