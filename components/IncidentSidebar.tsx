@@ -213,13 +213,24 @@ export default function IncidentSidebar({
       // Create wrapper element for PDF generation
       console.log('[PDF Download] Step 9: Creating wrapper element for PDF')
       const element = document.createElement('div')
+      
+      // Add unique ID for html2canvas to find it
+      const uniqueId = `pdf-element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      element.id = uniqueId
+      element.setAttribute('data-pdf-element', 'true')
+      console.log('[PDF Download] Element ID set:', uniqueId)
+      
       element.style.fontFamily = 'Arial, sans-serif'
       element.style.padding = '20px'
       element.style.backgroundColor = '#ffffff'
       element.style.color = '#000000'
-      element.style.width = '210mm' // A4 width
+      // Use explicit pixel dimensions instead of mm for better compatibility
+      element.style.width = '794px' // A4 width in pixels at 96 DPI
+      element.style.maxWidth = '794px'
       element.style.boxSizing = 'border-box'
-      element.style.minHeight = '297mm' // A4 height
+      element.style.minHeight = '1123px' // A4 height in pixels
+      element.style.height = 'auto'
+      element.style.overflow = 'visible'
       
       // Build the complete HTML structure
       console.log('[PDF Download] Step 10: Building final HTML structure')
@@ -261,6 +272,26 @@ export default function IncidentSidebar({
       console.log('[PDF Download] Total DOM elements in element:', allElementsCheck.length)
       const textElements = element.querySelectorAll('p, h1, h2, h3, td, th, div')
       console.log('[PDF Download] Text-containing elements:', textElements.length)
+      
+      // Force explicit height calculation BEFORE adding to DOM
+      // This ensures html2canvas sees the correct dimensions
+      const tempContainer = document.createElement('div')
+      tempContainer.style.position = 'absolute'
+      tempContainer.style.visibility = 'hidden'
+      tempContainer.style.width = '794px'
+      tempContainer.appendChild(element.cloneNode(true))
+      document.body.appendChild(tempContainer)
+      const tempElement = tempContainer.firstElementChild as HTMLElement
+      const calculatedHeight = tempElement.scrollHeight || tempElement.offsetHeight || 1123
+      document.body.removeChild(tempContainer)
+      
+      console.log('[PDF Download] Calculated height before DOM:', calculatedHeight)
+      
+      // Set explicit height based on calculated value
+      element.style.height = `${calculatedHeight}px`
+      element.style.minHeight = `${calculatedHeight}px`
+      element.style.maxHeight = `${calculatedHeight}px`
+      console.log('[PDF Download] Set explicit height to:', calculatedHeight, 'px')
       
       // Ensure all elements have proper visibility and colors
       console.log('[PDF Download] Step 11: Applying visibility and color styles to all elements')
@@ -433,7 +464,7 @@ export default function IncidentSidebar({
           windowHeight: Math.max(element.scrollHeight, element.offsetHeight, 1123),
           onclone: (clonedDoc: any, element: HTMLElement) => {
             console.log('[PDF Download] html2canvas onclone callback triggered')
-            console.log('[PDF Download] Original element:', element)
+            console.log('[PDF Download] Original element ID:', element.id)
             console.log('[PDF Download] Original element dimensions:', {
               offsetHeight: element.offsetHeight,
               offsetWidth: element.offsetWidth,
@@ -441,79 +472,101 @@ export default function IncidentSidebar({
               scrollWidth: element.scrollWidth
             })
             
-            // Find the cloned element in the cloned document
-            // html2canvas passes the original element, we need to find its clone
+            // Find the cloned element by ID or data attribute
             const clonedBody = clonedDoc.body
             console.log('[PDF Download] Cloned body:', clonedBody)
             
-            // Try to find the element by its position or attributes
-            // Since the element is the last child added to body, try to get it
-            const allDivs = clonedBody?.querySelectorAll('div') || []
-            console.log('[PDF Download] All divs in cloned body:', allDivs.length)
-            
-            // Find the div that matches our element's characteristics
+            // Try to find by ID first
             let clonedElement: HTMLElement | null = null
-            for (let i = 0; i < allDivs.length; i++) {
-              const div = allDivs[i] as HTMLElement
-              // Check if this div has our content (has style tag and our content)
-              if (div.innerHTML.includes('Informe de Incidencia de Seguridad') || 
-                  div.innerHTML.includes('severity-high')) {
-                clonedElement = div
-                console.log('[PDF Download] Found cloned element at index:', i)
-                break
+            if (element.id) {
+              clonedElement = clonedDoc.getElementById(element.id)
+              if (clonedElement) {
+                console.log('[PDF Download] Found cloned element by ID:', element.id)
               }
             }
             
-            // If not found, try the last div (most likely our element)
-            if (!clonedElement && allDivs.length > 0) {
-              clonedElement = allDivs[allDivs.length - 1] as HTMLElement
-              console.log('[PDF Download] Using last div as cloned element')
+            // If not found by ID, try data attribute
+            if (!clonedElement) {
+              clonedElement = clonedBody?.querySelector('[data-pdf-element="true"]') as HTMLElement
+              if (clonedElement) {
+                console.log('[PDF Download] Found cloned element by data attribute')
+              }
+            }
+            
+            // If still not found, search by content
+            if (!clonedElement) {
+              const allDivs = clonedBody?.querySelectorAll('div') || []
+              console.log('[PDF Download] Searching by content, all divs:', allDivs.length)
+              
+              for (let i = 0; i < allDivs.length; i++) {
+                const div = allDivs[i] as HTMLElement
+                if (div.innerHTML.includes('Informe de Incidencia de Seguridad') || 
+                    div.innerHTML.includes('severity-high')) {
+                  clonedElement = div
+                  console.log('[PDF Download] Found cloned element by content at index:', i)
+                  break
+                }
+              }
             }
             
             if (clonedElement) {
-              console.log('[PDF Download] Cloned element found, original dimensions:', {
+              console.log('[PDF Download] Cloned element found, BEFORE styling:', {
                 offsetHeight: clonedElement.offsetHeight,
                 offsetWidth: clonedElement.offsetWidth,
                 scrollHeight: clonedElement.scrollHeight,
-                scrollWidth: clonedElement.scrollWidth,
-                clientHeight: clonedElement.clientHeight,
-                clientWidth: clonedElement.clientWidth
+                scrollWidth: clonedElement.scrollWidth
               })
               
-              // Force explicit dimensions on cloned element
+              // Get dimensions from original element
               const originalHeight = element.scrollHeight || element.offsetHeight || 1123
               const originalWidth = element.scrollWidth || element.offsetWidth || 794
               
-              clonedElement.style.visibility = 'visible'
-              clonedElement.style.opacity = '1'
-              clonedElement.style.display = 'block'
-              clonedElement.style.position = 'absolute'
-              clonedElement.style.left = '0'
-              clonedElement.style.top = '0'
-              clonedElement.style.width = `${originalWidth}px`
-              clonedElement.style.height = `${originalHeight}px`
-              clonedElement.style.minHeight = `${originalHeight}px`
-              clonedElement.style.maxHeight = `${originalHeight}px`
-              clonedElement.style.overflow = 'visible'
+              // Apply ALL necessary styles to ensure visibility and dimensions
+              clonedElement.style.cssText = `
+                visibility: visible !important;
+                opacity: 1 !important;
+                display: block !important;
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: ${originalWidth}px !important;
+                height: ${originalHeight}px !important;
+                min-height: ${originalHeight}px !important;
+                max-height: ${originalHeight}px !important;
+                overflow: visible !important;
+                font-family: Arial, sans-serif !important;
+                padding: 20px !important;
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                box-sizing: border-box !important;
+              `
               
-              console.log('[PDF Download] Cloned element styled with explicit dimensions:', {
+              console.log('[PDF Download] Cloned element styled with cssText, dimensions:', {
                 width: `${originalWidth}px`,
                 height: `${originalHeight}px`
               })
               
-              // Force a reflow on the cloned element
+              // Force multiple reflows
               void clonedElement.offsetHeight
+              void clonedElement.scrollHeight
+              void clonedElement.clientHeight
               
-              console.log('[PDF Download] Cloned element after styling:', {
-                offsetHeight: clonedElement.offsetHeight,
-                offsetWidth: clonedElement.offsetWidth,
-                scrollHeight: clonedElement.scrollHeight,
-                scrollWidth: clonedElement.scrollWidth,
-                innerHTML: clonedElement.innerHTML.length,
-                textContent: clonedElement.textContent?.length || 0
-              })
+              // Wait a tiny bit for styles to apply
+              setTimeout(() => {
+                console.log('[PDF Download] Cloned element AFTER styling and reflow:', {
+                  offsetHeight: clonedElement!.offsetHeight,
+                  offsetWidth: clonedElement!.offsetWidth,
+                  scrollHeight: clonedElement!.scrollHeight,
+                  scrollWidth: clonedElement!.scrollWidth,
+                  clientHeight: clonedElement!.clientHeight,
+                  clientWidth: clonedElement!.clientWidth,
+                  computedHeight: clonedDoc.defaultView?.getComputedStyle(clonedElement!).height,
+                  computedWidth: clonedDoc.defaultView?.getComputedStyle(clonedElement!).width
+                })
+              }, 0)
             } else {
               console.error('[PDF Download] ERROR: Cloned element not found in onclone!')
+              console.error('[PDF Download] Element ID was:', element.id)
               console.error('[PDF Download] Cloned body innerHTML length:', clonedBody?.innerHTML?.length || 0)
             }
           }
