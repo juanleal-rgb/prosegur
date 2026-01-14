@@ -10,6 +10,7 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:update-coordinates": "tsx scripts/update-location-coordinates.ts",
     "db:add-incidents": "tsx scripts/add-incidents.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"

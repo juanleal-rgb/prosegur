@@ -11,21 +11,21 @@ async function main() {
   const locations = [
     {
       name: 'Zara Gran Via',
-      lat: 40.4194,
-      lng: -3.7038,
-      address: 'Gran Vía, 16, 28013 Madrid, Spain',
+      lat: 40.42036,
+      lng: -3.70414,
+      address: 'Calle Gran Vía, 34, 28013 Madrid, España',
     },
     {
       name: 'Zara Castellana',
-      lat: 40.4384,
-      lng: -3.6833,
-      address: 'Paseo de la Castellana, 79, 28046 Madrid, Spain',
+      lat: 40.4475,
+      lng: -3.6927,
+      address: 'Paseo de la Castellana, 79, 28046 Madrid, España',
     },
     {
       name: 'Zara Serrano',
-      lat: 40.4321,
-      lng: -3.6784,
-      address: 'Calle de Serrano, 45, 28001 Madrid, Spain',
+      lat: 40.4480,
+      lng: -3.6838,
+      address: 'Calle de Serrano, 23, 28001 Madrid, España',
     },
   ]
 

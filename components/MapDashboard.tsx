@@ -101,7 +101,11 @@ export default function MapDashboard() {
             return vehicle // Vehicle has arrived
           }
           
-          const newProgress = Math.min(vehicle.progress + 0.015, 1) // Adjust speed here (0.015 = faster)
+          // Calculate speed: 20 km/h = 5.56 m/s
+          // At 50ms per frame: 5.56 m/s * 0.05s = 0.278 m per frame
+          // For a typical route of ~2-3km, we need slower progress increment
+          // Approx 0.003 per frame gives realistic 20 km/h speed
+          const newProgress = Math.min(vehicle.progress + 0.003, 1) // ~20 km/h speed
           
           if (vehicle.route && vehicle.route.length > 0) {
             // Interpolate along the route
