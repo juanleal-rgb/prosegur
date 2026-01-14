@@ -213,11 +213,32 @@ a:focus-visible,
   outline-color: #FFD700;
 }
 
-/* Ensure Dialog appears above Leaflet map */
-.leaflet-container {
-  z-index: 1;
+/* Radar ping animation for map markers */
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.15);
+    transform-origin: center center;
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1);
+    transform-origin: center center;
+    opacity: 0;
+  }
 }
 
+/* Ensure Dialog appears above map */
 [data-radix-portal] {
   z-index: 9999 !important;
+}
+
+/* Mapbox GL styles */
+.mapboxgl-ctrl-logo {
+  display: none !important;
+}
+
+.mapboxgl-ctrl-attrib {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(8px);
+  font-size: 10px !important;
 }

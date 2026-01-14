@@ -58,18 +58,82 @@ export default function IncidentSidebar({
       // Dynamically import html2pdf.js (client-side only)
       const html2pdf = (await import('html2pdf.js')).default
       
-      const element = document.createElement('div')
-      element.innerHTML = incident.htmlReport
+      // Create a wrapper with proper styling for PDF generation
+      const wrapper = document.createElement('div')
+      wrapper.style.width = '210mm' // A4 width
+      wrapper.style.minHeight = '297mm' // A4 height
+      wrapper.style.padding = '20mm'
+      wrapper.style.fontFamily = 'Arial, sans-serif'
+      wrapper.style.backgroundColor = '#ffffff'
+      wrapper.style.color = '#000000'
+      wrapper.style.boxSizing = 'border-box'
+      
+      // Create inner container for the HTML content
+      const contentDiv = document.createElement('div')
+      contentDiv.innerHTML = incident.htmlReport
+      
+      // Ensure all inline styles are preserved and visible
+      const allElements = contentDiv.querySelectorAll('*')
+      allElements.forEach((el: Element) => {
+        const htmlEl = el as HTMLElement
+        // Ensure text is black and visible
+        if (!htmlEl.style.color || htmlEl.style.color === 'transparent') {
+          htmlEl.style.color = '#000000'
+        }
+        // Ensure background is white or visible
+        if (htmlEl.style.backgroundColor === 'transparent' || !htmlEl.style.backgroundColor) {
+          if (htmlEl.tagName === 'BODY' || htmlEl.tagName === 'HTML' || htmlEl.tagName === 'DIV') {
+            htmlEl.style.backgroundColor = '#ffffff'
+          }
+        }
+        // Ensure visibility
+        htmlEl.style.visibility = 'visible'
+        htmlEl.style.opacity = '1'
+      })
+      
+      wrapper.appendChild(contentDiv)
+
+      // Temporarily add to DOM (hidden) to ensure proper rendering
+      wrapper.style.position = 'absolute'
+      wrapper.style.left = '-9999px'
+      wrapper.style.top = '0'
+      wrapper.style.zIndex = '-1'
+      document.body.appendChild(wrapper)
+
+      // Wait for fonts and images to load
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       const opt = {
-        margin: 1,
-        filename: `incident-${incident.id}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        margin: [10, 10, 10, 10],
+        filename: `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { 
+          type: 'jpeg', 
+          quality: 0.98 
+        },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          letterRendering: true,
+          allowTaint: false,
+          removeContainer: false,
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true
+        },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       }
 
-      html2pdf().set(opt).from(element).save()
+      await html2pdf().set(opt).from(wrapper).save()
+      
+      // Clean up
+      if (document.body.contains(wrapper)) {
+        document.body.removeChild(wrapper)
+      }
     } catch (error) {
       console.error('Error generating PDF:', error)
       alert('Error al generar PDF. Por favor, inténtalo de nuevo.')

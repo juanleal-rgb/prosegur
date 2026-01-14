@@ -1,20 +1,12 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
+import Map, { Marker, MapRef } from 'react-map-gl/mapbox'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import IncidentSidebar from './IncidentSidebar'
 import { cn } from '@/lib/utils'
-import { MapPin, AlertTriangle, Activity, Shield } from 'lucide-react'
-
-// Fix for default marker icons in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-})
+import { MapPin, AlertTriangle, Activity, Shield, Satellite, Map as MapIcon } from 'lucide-react'
+import { useTheme } from './ThemeProvider'
 
 interface Incident {
   id: string
@@ -33,15 +25,20 @@ interface Location {
   incidents: Incident[]
 }
 
+type MapStyle = 'satellite' | 'streets' | 'dark' | 'light'
+
 export default function MapDashboard() {
   const [locations, setLocations] = useState<Location[]>([])
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mapStyle, setMapStyle] = useState<MapStyle>('satellite')
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const mapRef = useRef<MapRef>(null)
+  const { theme } = useTheme()
 
   useEffect(() => {
     fetchLocations()
-    // Refresh every 30 seconds to get new incidents
     const interval = setInterval(fetchLocations, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -63,6 +60,26 @@ export default function MapDashboard() {
   const handleMarkerClick = (location: Location) => {
     setSelectedLocation(location)
     setIsSidebarOpen(true)
+  }
+
+  const handleMapLoad = useCallback(() => {
+    setIsMapLoaded(true)
+  }, [])
+
+  // Map style URLs based on selection
+  const getMapStyle = (): string => {
+    switch (mapStyle) {
+      case 'satellite':
+        return 'mapbox://styles/mapbox/satellite-streets-v12'
+      case 'streets':
+        return 'mapbox://styles/mapbox/streets-v12'
+      case 'dark':
+        return 'mapbox://styles/mapbox/dark-v11'
+      case 'light':
+        return 'mapbox://styles/mapbox/light-v11'
+      default:
+        return 'mapbox://styles/mapbox/satellite-streets-v12'
+    }
   }
 
   // Calculate KPIs
@@ -105,7 +122,7 @@ export default function MapDashboard() {
   }
 
   // Default center to Madrid
-  const center: [number, number] = [40.4168, -3.7038]
+  const center: [number, number] = [-3.7038, 40.4168] // [lng, lat] for Mapbox
 
   return (
     <div className="flex flex-col h-screen bg-[var(--prosegur-bg)] overflow-hidden">
@@ -141,7 +158,7 @@ export default function MapDashboard() {
                 {kpis.totalLocations}
               </span>
             </div>
-            <div className="rounded-full p-1.5 bg-blue-500/10 text-blue-500">
+            <div className="rounded-full p-1.5 bg-[var(--prosegur-primary)]/10 text-[var(--prosegur-primary)]">
               <MapPin className="h-4 w-4" />
             </div>
           </div>
@@ -244,67 +261,175 @@ export default function MapDashboard() {
 
       {/* Map Container */}
       <div className="flex-1 relative min-h-0 p-6 pt-0">
-        <div className="h-full w-full rounded-xl overflow-hidden border border-[var(--prosegur-border)] bg-zinc-900/50 shadow-xl">
-          <MapContainer
-            center={center}
-            zoom={13}
-            style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={true}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {locations.map((location) => {
-              const hasHighSeverity = location.incidents.some(
-                inc => inc.severity.toLowerCase() === 'high'
-              )
-              const hasRecentIncidents = location.incidents.some(inc => {
-                const incidentDate = new Date(inc.createdAt)
-                const hoursAgo = (Date.now() - incidentDate.getTime()) / (1000 * 60 * 60)
-                return hoursAgo < 24
-              })
+        <div className="h-full w-full rounded-xl overflow-hidden border border-[var(--prosegur-border)] shadow-xl relative">
+          {/* Map Style Toggle */}
+          <div className="absolute top-4 right-4 z-50 flex flex-col gap-2">
+            <div className="backdrop-blur-lg bg-black/70 dark:bg-black/80 border border-zinc-700 rounded-lg p-1 flex flex-col gap-1">
+              <button
+                onClick={() => setMapStyle('satellite')}
+                className={cn(
+                  "p-2 rounded transition-all",
+                  mapStyle === 'satellite'
+                    ? "bg-[var(--prosegur-primary)] text-[var(--prosegur-text-on-yellow)]"
+                    : "text-zinc-400 hover:text-white hover:bg-white/10"
+                )}
+                title="Vista Satélite"
+              >
+                <Satellite className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setMapStyle('streets')}
+                className={cn(
+                  "p-2 rounded transition-all",
+                  mapStyle === 'streets'
+                    ? "bg-[var(--prosegur-primary)] text-[var(--prosegur-text-on-yellow)]"
+                    : "text-zinc-400 hover:text-white hover:bg-white/10"
+                )}
+                title="Vista Calles"
+              >
+                <MapIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setMapStyle(theme === 'dark' ? 'dark' : 'light')}
+                className={cn(
+                  "p-2 rounded transition-all",
+                  (mapStyle === 'dark' || mapStyle === 'light')
+                    ? "bg-[var(--prosegur-primary)] text-[var(--prosegur-text-on-yellow)]"
+                    : "text-zinc-400 hover:text-white hover:bg-white/10"
+                )}
+                title={theme === 'dark' ? 'Vista Oscura' : 'Vista Clara'}
+              >
+                <MapPin className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
 
-              return (
-                <Marker
-                  key={location.id}
-                  position={[location.lat, location.lng]}
-                  eventHandlers={{
-                    click: () => {
-                      handleMarkerClick(location)
-                    },
-                  }}
-                >
-                  <Popup>
-                    <div className="min-w-[200px]">
-                      <strong className="text-sm">{location.name}</strong>
-                      <br />
-                      <span className="text-xs text-gray-600">{location.address}</span>
-                      <br />
-                      <div className="mt-2 space-y-1">
-                        <span className="text-xs text-gray-500">
-                          {location.incidents.length} incidente(s)
-                        </span>
-                        {hasHighSeverity && (
-                          <div className="text-xs text-red-600 font-medium">
-                            ⚠ Alta severidad
-                          </div>
+          {process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
+            <Map
+              ref={mapRef}
+              initialViewState={{
+                longitude: center[0],
+                latitude: center[1],
+                zoom: 13,
+              }}
+              style={{ width: '100%', height: '100%' }}
+              mapStyle={getMapStyle()}
+              mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+              onLoad={handleMapLoad}
+              attributionControl={false}
+              reuseMaps
+            >
+              {locations.map((location) => {
+                const hasHighSeverity = location.incidents.some(
+                  inc => inc.severity.toLowerCase() === 'high'
+                )
+                const hasRecentIncidents = location.incidents.some(inc => {
+                  const incidentDate = new Date(inc.createdAt)
+                  const hoursAgo = (Date.now() - incidentDate.getTime()) / (1000 * 60 * 60)
+                  return hoursAgo < 24
+                })
+                const incidentCount = location.incidents.length
+
+                return (
+          <Marker
+            key={location.id}
+                    longitude={location.lng}
+                    latitude={location.lat}
+                    anchor="bottom"
+                  >
+                    <div className="relative group cursor-pointer" onClick={() => handleMarkerClick(location)}>
+                      {/* Radar ping effect for high severity or recent incidents */}
+                      {(hasHighSeverity || hasRecentIncidents) && (
+                        <>
+                          <div
+                            className={cn(
+                              "absolute rounded-full border-2 pointer-events-none",
+                              hasHighSeverity ? "border-red-500" : "border-amber-500"
+                            )}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              top: '-18px',
+                              left: '-18px',
+                              animation: 'radar-ping 3s ease-out infinite',
+                            }}
+                          />
+                          <div
+                            className={cn(
+                              "absolute rounded-full border-2 pointer-events-none",
+                              hasHighSeverity ? "border-red-500" : "border-amber-500"
+                            )}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              top: '-18px',
+                              left: '-18px',
+                              animation: 'radar-ping 3s ease-out infinite 1s',
+                            }}
+                          />
+                        </>
+                      )}
+
+                      {/* Custom marker */}
+                      <div
+                        className={cn(
+                          "relative flex items-center justify-center rounded-full border-2 shadow-xl transition-all hover:scale-110",
+                          hasHighSeverity
+                            ? "bg-red-500 border-red-400 text-white"
+                            : hasRecentIncidents
+                              ? "bg-amber-500 border-amber-400 text-white"
+                              : "bg-[var(--prosegur-primary)] border-[var(--prosegur-primary-dark)] text-[var(--prosegur-text-on-yellow)]"
                         )}
-                        {hasRecentIncidents && (
-                          <div className="text-xs text-amber-600 font-medium">
-                            🕐 Reciente
+                        style={{ width: '32px', height: '32px' }}
+                      >
+                        <MapPin className="h-4 w-4" />
+                        {incidentCount > 0 && (
+                          <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 border-2 border-white flex items-center justify-center text-[10px] font-bold">
+                            {incidentCount}
                           </div>
                         )}
                       </div>
-                      <span className="text-xs text-blue-600 mt-1 block">
-                        Click para ver detalles
-                      </span>
+
+                      {/* Tooltip on hover */}
+                      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                        <div className="backdrop-blur-lg bg-black/90 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono shadow-xl min-w-[200px]">
+                          <div className="font-semibold text-white">{location.name}</div>
+                          <div className="text-zinc-400 text-[10px] mt-1">{location.address}</div>
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-700">
+                            <span className="text-zinc-500 text-[10px]">
+                              {incidentCount} incidente{incidentCount !== 1 ? 's' : ''}
+                            </span>
+                            {hasHighSeverity && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-500/20 text-red-300">
+                                ALTA
+                </span>
+                            )}
+                            {hasRecentIncidents && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300">
+                                RECIENTE
+                </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </Popup>
-                </Marker>
-              )
-            })}
-          </MapContainer>
+                  </Marker>
+                )
+              })}
+            </Map>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-zinc-900/50">
+              <div className="text-center space-y-2">
+                <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+                <p className="text-zinc-400 font-mono text-sm">
+                  MAPBOX_TOKEN no configurado
+                </p>
+                <p className="text-zinc-500 font-mono text-xs">
+                  Agrega NEXT_PUBLIC_MAPBOX_TOKEN a tu .env
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
