@@ -342,21 +342,27 @@ export default function IncidentSidebar({
       element.style.width = `${measuredWidth}px`
       element.style.maxWidth = `${measuredWidth}px`
       
-      element.style.position = 'absolute'
-      element.style.left = '-9999px'
+      // Use fixed positioning at 0,0 so html2pdf can find it in the iframe
+      // But make it almost invisible
+      element.style.position = 'fixed'
+      element.style.left = '0'
       element.style.top = '0'
-      element.style.zIndex = '9999'
+      element.style.zIndex = '999999'
       element.style.visibility = 'visible'
       element.style.display = 'block'
       element.style.overflow = 'visible'
-      element.style.opacity = '1'
+      element.style.opacity = '0.01' // Almost invisible but still rendered and findable
       element.style.pointerEvents = 'none'
       element.style.boxSizing = 'border-box'
       
       document.body.appendChild(element)
       console.log('[PDF Download] Element added to DOM with explicit dimensions:', {
         height: `${measuredHeight}px`,
-        width: `${measuredWidth}px`
+        width: `${measuredWidth}px`,
+        position: 'fixed',
+        left: '0',
+        top: '0',
+        opacity: '0.01'
       })
 
       // Force multiple reflows to ensure rendering
@@ -470,17 +476,7 @@ export default function IncidentSidebar({
           allowTaint: true,
           windowWidth: element.offsetWidth || 794,
           windowHeight: element.offsetHeight || 1123,
-          ignoreElements: (element: Element) => {
-            // Ignore elements that are not our PDF element
-            const isOurElement = element.hasAttribute('data-pdf-element') || 
-                                 element.id?.startsWith('pdf-element-')
-            if (!isOurElement && element !== document.body) {
-              // Only ignore if it's not a child of our element
-              const isChild = element.closest('[data-pdf-element="true"]')
-              return !isChild && element !== document.body
-            }
-            return false
-          },
+          // Don't use ignoreElements - it's causing the element to not be found
           onclone: (clonedDoc: any, element: HTMLElement) => {
             console.log('[PDF Download] html2canvas onclone callback triggered')
             console.log('[PDF Download] Original element ID:', element.id)
