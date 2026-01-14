@@ -16,7 +16,7 @@ POST /api/webhook/incident
 - `location_name` (string): Nombre exacto de la ubicación (debe existir en la BD)
 - `severity` (string): "Low", "Medium", o "High"
 - `summary` (string): Resumen corto del incidente
-- `html_report` (string): Reporte completo en formato HTML
+- `html_report` (string): Reporte completo en formato **texto plano** (el sistema genera el HTML automáticamente)
 
 ## 📋 Campos Opcionales
 
@@ -34,7 +34,7 @@ POST /api/webhook/incident
   "severity": "High",
   "category": "Theft",
   "summary": "Robo de mercancía de alto valor en la sección de accesorios. El sospechoso fue detectado por las cámaras de seguridad.",
-  "html_report": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Informe de Incidencia</title><style>body { font-family: Arial, sans-serif; margin: 40px; } h1 { color: #2c3e50; } .header { border-bottom: 2px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; } .summary { background: #ecf0f1; padding: 20px; border-radius: 5px; margin-bottom: 30px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; } th { background-color: #3498db; color: white; } .severity-high { background-color: #e74c3c; color: white; }</style></head><body><div class=\"header\"><h1>Informe de Incidencias de Seguridad</h1><p>Generado el: 14 de enero de 2026</p></div><div class=\"summary\"><h2>Resumen Ejecutivo</h2><p>Se detectó un robo de mercancía de alto valor en la sección de accesorios de la tienda Zara Gran Via. El incidente fue capturado por las cámaras de seguridad y se activó inmediatamente el protocolo de seguridad.</p></div><h2>Detalle de Incidencias</h2><table><thead><tr><th>Ubicación</th><th>Fecha</th><th>Causa</th><th>Descripción</th><th>Severidad</th></tr></thead><tbody><tr><td>Zara Gran Via</td><td>14/01/2026</td><td>Robo</td><td>Robo de mercancía de alto valor en la sección de accesorios.</td><td class=\"severity-high\">High</td></tr></tbody></table></body></html>"
+  "html_report": "Se detectó un robo de mercancía de alto valor en la sección de accesorios de la tienda Zara Gran Via. El incidente fue capturado por las cámaras de seguridad y se activó inmediatamente el protocolo de seguridad.\n\nEl sospechoso fue identificado y se notificó a las autoridades competentes. Se procedió a revisar las grabaciones de las cámaras de seguridad para obtener más información sobre el incidente.\n\nRecomendaciones:\n- Revisar los protocolos de seguridad en la sección de accesorios\n- Aumentar la presencia de personal de seguridad durante horas pico\n- Considerar la instalación de sistemas anti-robo adicionales"
 }
 ```
 
@@ -48,7 +48,7 @@ curl -X POST http://localhost:3000/api/webhook/incident \
     "severity": "High",
     "category": "Theft",
     "summary": "Robo de mercancía de alto valor en la sección de accesorios. El sospechoso fue detectado por las cámaras de seguridad.",
-    "html_report": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Informe de Incidencia</title><style>body { font-family: Arial, sans-serif; margin: 40px; } h1 { color: #2c3e50; } .header { border-bottom: 2px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; } .summary { background: #ecf0f1; padding: 20px; border-radius: 5px; margin-bottom: 30px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; } th { background-color: #3498db; color: white; } .severity-high { background-color: #e74c3c; color: white; }</style></head><body><div class=\"header\"><h1>Informe de Incidencias de Seguridad</h1><p>Generado el: 14 de enero de 2026</p></div><div class=\"summary\"><h2>Resumen Ejecutivo</h2><p>Se detectó un robo de mercancía de alto valor en la sección de accesorios de la tienda Zara Gran Via. El incidente fue capturado por las cámaras de seguridad y se activó inmediatamente el protocolo de seguridad.</p></div><h2>Detalle de Incidencias</h2><table><thead><tr><th>Ubicación</th><th>Fecha</th><th>Causa</th><th>Descripción</th><th>Severidad</th></tr></thead><tbody><tr><td>Zara Gran Via</td><td>14/01/2026</td><td>Robo</td><td>Robo de mercancía de alto valor en la sección de accesorios.</td><td class=\"severity-high\">High</td></tr></tbody></table></body></html>"
+    "html_report": "Se detectó un robo de mercancía de alto valor en la sección de accesorios. El incidente fue capturado por las cámaras de seguridad.\n\nRecomendaciones:\n- Revisar protocolos de seguridad\n- Aumentar presencia de personal"
   }'
 ```
 
@@ -64,7 +64,7 @@ curl -X POST http://localhost:3000/api/webhook/incident \
   "severity": "Medium",
   "category": "Fire",
   "summary": "Incendio reportado asociado a Zara Serrano, clasificado con severidad media; se activó el protocolo de emergencia.",
-  "html_report": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Informe de Incidencia</title><style>body { font-family: Arial, sans-serif; margin: 40px; } h1 { color: #2c3e50; } .header { border-bottom: 2px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; } .summary { background: #ecf0f1; padding: 20px; border-radius: 5px; margin-bottom: 30px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; } th { background-color: #3498db; color: white; } .severity-medium { background-color: #f39c12; color: white; }</style></head><body><div class=\"header\"><h1>Informe de Incidencias de Seguridad</h1><p>Generado el: 14 de enero de 2026</p></div><div class=\"summary\"><h2>Resumen Ejecutivo</h2><p>Se recibió un reporte de incendio relacionado con la referencia Zara Serrano; la situación fue evaluada y clasificada como de severidad media. Se procedió a activar el protocolo de emergencia, notificando a los servicios de extinción y, en su caso, a los servicios médicos y de seguridad pertinentes.</p></div><h2>Detalle de Incidencias</h2><table><thead><tr><th>Ubicación</th><th>Fecha</th><th>Causa</th><th>Descripción</th><th>Severidad</th></tr></thead><tbody><tr><td>Zara Serrano</td><td>14/01/2026</td><td>Incendio</td><td>Incendio reportado asociado a Zara Serrano, clasificado con severidad media; se activó el protocolo de emergencia.</td><td class=\"severity-medium\">Medium</td></tr></tbody></table></body></html>"
+  "html_report": "Se recibió un reporte de incendio relacionado con la referencia Zara Serrano; la situación fue evaluada y clasificada como de severidad media.\n\nSe procedió a activar el protocolo de emergencia, notificando a los servicios de extinción y, en su caso, a los servicios médicos y de seguridad pertinentes. Se llevaron a cabo acciones iniciales de contención y evacuación según protocolos disponibles.\n\nRecomendaciones:\n- Realizar inspección técnica detallada del lugar\n- Determinar causas del incidente\n- Aplicar medidas preventivas para evitar recurrencias"
 }
 ```
 
@@ -80,7 +80,7 @@ curl -X POST http://localhost:3000/api/webhook/incident \
   "severity": "Low",
   "category": "False Alarm",
   "summary": "Alarma de seguridad activada por movimiento no autorizado. Se revisaron las cámaras y se confirmó falsa alarma. Sistema funcionando correctamente.",
-  "html_report": "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Informe de Incidencia</title><style>body { font-family: Arial, sans-serif; margin: 40px; } h1 { color: #2c3e50; } .header { border-bottom: 2px solid #3498db; padding-bottom: 20px; margin-bottom: 30px; } .summary { background: #ecf0f1; padding: 20px; border-radius: 5px; margin-bottom: 30px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; } th { background-color: #3498db; color: white; } .severity-low { background-color: #27ae60; color: white; }</style></head><body><div class=\"header\"><h1>Informe de Incidencias de Seguridad</h1><p>Generado el: 14 de enero de 2026</p></div><div class=\"summary\"><h2>Resumen Ejecutivo</h2><p>Alarma de seguridad activada por movimiento no autorizado. Se revisaron las cámaras y se confirmó falsa alarma. Sistema funcionando correctamente.</p></div><h2>Detalle de Incidencias</h2><table><thead><tr><th>Ubicación</th><th>Fecha</th><th>Causa</th><th>Descripción</th><th>Severidad</th></tr></thead><tbody><tr><td>Zara Castellana</td><td>14/01/2026</td><td>Falsa Alarma</td><td>Alarma de seguridad activada por movimiento no autorizado. Se revisaron las cámaras y se confirmó falsa alarma.</td><td class=\"severity-low\">Low</td></tr></tbody></table></body></html>"
+  "html_report": "Alarma de seguridad activada por movimiento no autorizado. Se revisaron las cámaras y se confirmó falsa alarma.\n\nSistema funcionando correctamente. No se requieren acciones adicionales."
 }
 ```
 
@@ -102,7 +102,7 @@ async function crearIncidente() {
       severity: 'High',
       category: 'Theft',
       summary: 'Robo de mercancía de alto valor en la sección de accesorios.',
-      html_report: '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe</title><style>body { font-family: Arial, sans-serif; margin: 40px; }</style></head><body><h1>Informe de Incidencia</h1><p>Detalles del incidente...</p></body></html>'
+      html_report: 'Se detectó un incidente de seguridad. El sistema fue activado correctamente.\n\nDetalles del incidente y recomendaciones adicionales.'
     })
   });
 
@@ -134,20 +134,9 @@ def crear_incidente():
         "severity": "High",
         "category": "Theft",
         "summary": "Robo de mercancía de alto valor en la sección de accesorios.",
-        "html_report": """<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Informe</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-    </style>
-</head>
-<body>
-    <h1>Informe de Incidencia</h1>
-    <p>Detalles del incidente...</p>
-</body>
-</html>"""
+        "html_report": """Se detectó un incidente de seguridad. El sistema fue activado correctamente.
+
+Detalles del incidente y recomendaciones adicionales."""
     }
     
     response = requests.post(url, json=payload)
@@ -247,7 +236,7 @@ Las siguientes ubicaciones deben existir en tu base de datos (se crean automáti
 
 ## 📝 Notas Importantes
 
-1. **HTML Report:** El campo `html_report` debe contener HTML válido. Este HTML se usa para generar PDFs cuando el usuario descarga el reporte.
+1. **HTML Report:** El campo `html_report` debe contener **texto plano** (no HTML). El sistema genera automáticamente el HTML formateado con estilos profesionales. Puedes usar saltos de línea (`\n`) para separar párrafos.
 
 2. **Severidad:** Los valores deben ser exactamente `"Low"`, `"Medium"`, o `"High"` (con mayúscula inicial).
 

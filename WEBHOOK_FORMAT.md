@@ -57,9 +57,10 @@ POST https://tu-proyecto.railway.app/api/webhook/incident
 - **Ejemplo:** `"Robo de mercancía en la sección de accesorios"`
 
 ### `html_report` (Requerido)
-- **Tipo:** String (HTML)
-- **Descripción:** Reporte completo del incidente en formato HTML (se usa para generar PDFs)
-- **Ejemplo:** `"<html><body><h1>Reporte de Incidente</h1><p>Detalles del incidente...</p></body></html>"`
+- **Tipo:** String (Texto plano)
+- **Descripción:** Reporte completo del incidente en formato texto plano. El sistema generará automáticamente el HTML formateado para los PDFs.
+- **Ejemplo:** `"Se detectó un robo de mercancía de alto valor. El incidente fue capturado por las cámaras de seguridad.\n\nRecomendaciones:\n- Revisar protocolos de seguridad\n- Aumentar presencia de personal"`
+- **Nota:** Puedes usar saltos de línea (`\n`) para separar párrafos. Los párrafos separados por doble salto de línea se convertirán en párrafos HTML separados.
 
 ### `category` (Opcional)
 - **Tipo:** String
@@ -76,7 +77,7 @@ POST https://tu-proyecto.railway.app/api/webhook/incident
   "severity": "High",
   "category": "Theft",
   "summary": "Robo de mercancía de alto valor en la sección de accesorios. El sospechoso fue detectado por las cámaras de seguridad.",
-  "html_report": "<html><head><title>Reporte de Incidente</title></head><body><h1>Reporte de Incidente - Zara Gran Via</h1><h2>Resumen</h2><p>Robo de mercancía de alto valor en la sección de accesorios. El sospechoso fue detectado por las cámaras de seguridad.</p><h2>Detalles</h2><ul><li>Hora: 14:30</li><li>Ubicación: Sección de accesorios, planta baja</li><li>Valor estimado: €500</li><li>Estado: En investigación</li></ul></body></html>"
+  "html_report": "Se detectó un robo de mercancía de alto valor en la sección de accesorios de la tienda Zara Gran Via. El incidente fue capturado por las cámaras de seguridad y se activó inmediatamente el protocolo de seguridad.\n\nEl sospechoso fue identificado y se notificó a las autoridades competentes. Se procedió a revisar las grabaciones de las cámaras de seguridad para obtener más información sobre el incidente.\n\nRecomendaciones:\n- Revisar los protocolos de seguridad en la sección de accesorios\n- Aumentar la presencia de personal de seguridad durante horas pico\n- Considerar la instalación de sistemas anti-robo adicionales"
 }
 ```
 
@@ -138,7 +139,7 @@ curl -X POST https://tu-proyecto.railway.app/api/webhook/incident \
     "severity": "High",
     "category": "Theft",
     "summary": "Robo de mercancía de alto valor en la sección de accesorios",
-    "html_report": "<html><body><h1>Reporte de Incidente</h1><p>Detalles del incidente...</p></body></html>"
+    "html_report": "Se detectó un robo de mercancía de alto valor. El incidente fue capturado por las cámaras de seguridad.\n\nRecomendaciones:\n- Revisar protocolos de seguridad\n- Aumentar presencia de personal"
   }'
 ```
 
@@ -229,7 +230,7 @@ Content-Type: application/json
 
 2. **Severidad:** Los valores deben ser exactamente `"Low"`, `"Medium"`, o `"High"` (con mayúscula inicial).
 
-3. **HTML Report:** El campo `html_report` debe contener HTML válido. Este HTML se usará para generar PDFs cuando el usuario haga clic en "Download Report".
+3. **HTML Report:** El campo `html_report` debe contener texto plano (no HTML). El sistema generará automáticamente el HTML formateado con estilos profesionales para los PDFs. Puedes usar saltos de línea (`\n`) para separar párrafos.
 
 4. **Categoría:** El campo `category` se acepta pero actualmente no se guarda en la base de datos. Puedes incluirlo para futuras expansiones.
 
