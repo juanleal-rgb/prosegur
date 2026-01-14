@@ -119,6 +119,14 @@ export default function IncidentSidebar({
         if (bodyElement && bodyElement.innerHTML.trim()) {
           contentToUse = bodyElement.innerHTML
           console.log('[PDF Download] Body content extracted, length:', contentToUse.length)
+          console.log('[PDF Download] Body content preview:', contentToUse.substring(0, 300))
+          
+          // Verify body has actual content
+          const bodyText = bodyElement.textContent || ''
+          console.log('[PDF Download] Body textContent length:', bodyText.length)
+          if (bodyText.trim().length === 0) {
+            console.warn('[PDF Download] WARNING: Body has no text content, but has innerHTML')
+          }
         } else {
           // If no body tag, use the entire HTML content but remove html/head tags
           console.log('[PDF Download] No body element found, using fallback extraction')
@@ -188,14 +196,29 @@ export default function IncidentSidebar({
       let finalHTML = ''
       if (styles) {
         finalHTML += `<style>${styles}</style>`
-        console.log('[PDF Download] Added styles to finalHTML')
+        console.log('[PDF Download] Added styles to finalHTML, styles length:', styles.length)
+      } else {
+        console.warn('[PDF Download] WARNING: No styles extracted!')
       }
+      
+      // Ensure we have content
+      if (!contentToUse || contentToUse.trim().length === 0) {
+        console.error('[PDF Download] ERROR: contentToUse is empty! Using original HTML')
+        contentToUse = htmlContent
+      }
+      
       finalHTML += contentToUse
       console.log('[PDF Download] Final HTML length:', finalHTML.length)
-      console.log('[PDF Download] Final HTML preview (first 300 chars):', finalHTML.substring(0, 300))
+      console.log('[PDF Download] Final HTML preview (first 500 chars):', finalHTML.substring(0, 500))
+      console.log('[PDF Download] Final HTML preview (last 200 chars):', finalHTML.substring(Math.max(0, finalHTML.length - 200)))
       
+      // Clear element first
+      element.innerHTML = ''
       element.innerHTML = finalHTML
-      console.log('[PDF Download] Element innerHTML set, element children count:', element.children.length)
+      console.log('[PDF Download] Element innerHTML set')
+      console.log('[PDF Download] Element children count:', element.children.length)
+      console.log('[PDF Download] Element textContent length:', element.textContent?.length || 0)
+      console.log('[PDF Download] Element textContent preview:', element.textContent?.substring(0, 200))
       
       // Ensure all elements have proper visibility and colors
       console.log('[PDF Download] Step 11: Applying visibility and color styles to all elements')
@@ -238,14 +261,23 @@ export default function IncidentSidebar({
       
       // Add to DOM temporarily (off-screen) to ensure proper rendering
       console.log('[PDF Download] Step 13: Adding element to DOM (off-screen)')
-      element.style.position = 'absolute'
-      element.style.left = '-9999px'
+      // Use fixed positioning instead of absolute to ensure it's rendered
+      element.style.position = 'fixed'
+      element.style.left = '0'
       element.style.top = '0'
-      element.style.zIndex = '-1'
+      element.style.width = '210mm'
+      element.style.maxWidth = '210mm'
+      element.style.height = 'auto'
+      element.style.minHeight = '297mm'
+      element.style.zIndex = '9999'
       element.style.visibility = 'visible'
       element.style.display = 'block'
+      element.style.overflow = 'visible'
+      // Make it invisible but still rendered
+      element.style.opacity = '0.01'
+      element.style.pointerEvents = 'none'
       document.body.appendChild(element)
-      console.log('[PDF Download] Element added to DOM')
+      console.log('[PDF Download] Element added to DOM with fixed positioning')
 
       // Force a reflow to ensure rendering
       console.log('[PDF Download] Step 14: Forcing reflow')
@@ -258,17 +290,35 @@ export default function IncidentSidebar({
       })
 
       // Wait for rendering and styles to apply, and for images to load
-      console.log('[PDF Download] Step 15: Waiting 800ms for rendering and styles to apply')
-      await new Promise(resolve => setTimeout(resolve, 800))
+      console.log('[PDF Download] Step 15: Waiting 1000ms for rendering and styles to apply')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Force another reflow after wait
+      void element.offsetHeight
+      
       console.log('[PDF Download] Wait complete, final dimensions:', {
         scrollHeight: element.scrollHeight,
-        scrollWidth: element.scrollWidth
+        scrollWidth: element.scrollWidth,
+        offsetHeight: element.offsetHeight,
+        offsetWidth: element.offsetWidth,
+        clientHeight: element.clientHeight,
+        clientWidth: element.clientWidth
       })
       
       // Verify element has content
       if (!element.innerHTML || element.innerHTML.trim().length === 0) {
         console.error('[PDF Download] ERROR: Element is empty after rendering!')
+        console.error('[PDF Download] Element innerHTML:', element.innerHTML)
         throw new Error('El elemento está vacío después del renderizado')
+      }
+      
+      // Check if element has visible text
+      const textContent = element.textContent || ''
+      if (textContent.trim().length === 0) {
+        console.error('[PDF Download] ERROR: Element has no text content!')
+        console.error('[PDF Download] Element innerHTML length:', element.innerHTML.length)
+        console.error('[PDF Download] Element innerHTML:', element.innerHTML.substring(0, 500))
+        throw new Error('El elemento no tiene contenido de texto visible')
       }
       
       // Log for debugging
@@ -276,9 +326,13 @@ export default function IncidentSidebar({
       console.log('[PDF Download] Element content check:', {
         hasContent: element.innerHTML.length > 0,
         innerHTMLLength: element.innerHTML.length,
+        textContentLength: textContent.length,
+        textContentPreview: textContent.substring(0, 200),
         elementHeight: element.scrollHeight,
         elementWidth: element.scrollWidth,
-        childrenCount: element.children.length
+        childrenCount: element.children.length,
+        hasTables: element.querySelectorAll('table').length,
+        hasParagraphs: element.querySelectorAll('p').length
       })
 
       const filename = `incidente-${incident.id}-${new Date().toISOString().split('T')[0]}.pdf`
@@ -300,6 +354,8 @@ export default function IncidentSidebar({
           windowHeight: element.scrollHeight || 1200,
           onclone: (clonedDoc: any) => {
             console.log('[PDF Download] html2canvas onclone callback triggered')
+            console.log('[PDF Download] Cloned document body:', clonedDoc.body)
+            
             // Ensure cloned document has proper styles
             const clonedElement = clonedDoc.body?.querySelector('div')
             if (clonedElement) {
@@ -307,8 +363,14 @@ export default function IncidentSidebar({
               clonedElement.style.opacity = '1'
               clonedElement.style.display = 'block'
               console.log('[PDF Download] Cloned element styled')
+              console.log('[PDF Download] Cloned element innerHTML length:', clonedElement.innerHTML.length)
+              console.log('[PDF Download] Cloned element textContent length:', clonedElement.textContent?.length || 0)
             } else {
               console.warn('[PDF Download] WARNING: Cloned element not found in onclone')
+              console.warn('[PDF Download] Cloned body children:', clonedDoc.body?.children.length || 0)
+              // Try to find any div in the body
+              const allDivs = clonedDoc.body?.querySelectorAll('div')
+              console.warn('[PDF Download] All divs in cloned body:', allDivs?.length || 0)
             }
           }
         },
