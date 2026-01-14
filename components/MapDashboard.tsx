@@ -373,7 +373,7 @@ export default function MapDashboard() {
                       {/* Custom marker */}
                       <div
                         className={cn(
-                          "relative flex items-center justify-center rounded-full border-2 shadow-xl transition-all hover:scale-110",
+                          "relative flex items-center justify-center rounded-full border-2 shadow-xl transition-transform duration-200 hover:scale-110",
                           hasHighSeverity
                             ? "bg-red-500 border-red-400 text-white"
                             : hasRecentIncidents
@@ -391,26 +391,28 @@ export default function MapDashboard() {
                       </div>
 
                       {/* Tooltip on hover */}
-                      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-                        <div className="backdrop-blur-lg bg-black/90 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono shadow-xl min-w-[200px]">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 pointer-events-none">
+                        <div className="backdrop-blur-lg bg-black/90 border border-zinc-700 rounded-lg px-3 py-2 text-xs font-mono shadow-xl min-w-[200px] max-w-[250px]">
                           <div className="font-semibold text-white">{location.name}</div>
-                          <div className="text-zinc-400 text-[10px] mt-1">{location.address}</div>
-                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-700">
+                          <div className="text-zinc-400 text-[10px] mt-1 break-words">{location.address}</div>
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-700 flex-wrap">
                             <span className="text-zinc-500 text-[10px]">
                               {incidentCount} incidente{incidentCount !== 1 ? 's' : ''}
                             </span>
                             {hasHighSeverity && (
                               <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-500/20 text-red-300">
                                 ALTA
-                </span>
+                              </span>
                             )}
                             {hasRecentIncidents && (
                               <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300">
                                 RECIENTE
-                </span>
+                              </span>
                             )}
                           </div>
                         </div>
+                        {/* Arrow pointing down */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-zinc-700"></div>
                       </div>
                     </div>
                   </Marker>

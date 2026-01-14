@@ -865,13 +865,7 @@ export default function IncidentSidebar({
 
             {/* Report Section */}
             <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900/50 dark:to-zinc-800/30">
-              <div className="flex items-center justify-between mb-4 sticky top-0 bg-inherit pb-2 z-10">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-[var(--prosegur-primary)]/10 dark:bg-[var(--prosegur-primary)]/20 p-2">
-                    <FileText className="h-5 w-5 text-[var(--prosegur-primary)]" />
-                  </div>
-                  
-                </div>
+              <div className="flex items-center justify-end mb-4 sticky top-0 bg-inherit pb-2 z-10">
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
